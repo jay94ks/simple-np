@@ -3,6 +3,7 @@
 
 ### Schematic
 ![](https://raw.githubusercontent.com/jay94ks/simple-np/main/hw/RP2040_KBD-MCU.png)
+See `hw/pdf/*.pdf` files to read more details.
 
 ### Features
 * MCU: RP2040, 133MHz Dual core.
