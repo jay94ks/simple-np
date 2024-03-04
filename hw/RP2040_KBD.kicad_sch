@@ -1,0 +1,99 @@
+(kicad_sch (version 20230121) (generator eeschema)
+
+  (uuid e263e983-43e8-48d0-a73e-d77008c96002)
+
+  (paper "A4")
+
+  (lib_symbols
+  )
+
+
+  (sheet (at 100.33 20.32) (size 21.59 21.59) (fields_autoplaced)
+    (stroke (width 0.1524) (type solid))
+    (fill (color 0 0 0 0.0000))
+    (uuid 262046c6-914b-474e-bd4d-6e4893a18a5b)
+    (property "Sheetname" "MACRO_FN" (at 100.33 19.6084 0)
+      (effects (font (size 1.27 1.27)) (justify left bottom))
+    )
+    (property "Sheetfile" "MACRO_FN.kicad_sch" (at 100.33 42.4946 0)
+      (effects (font (size 1.27 1.27)) (justify left top))
+    )
+    (instances
+      (project "RP2040_KBD"
+        (path "/e263e983-43e8-48d0-a73e-d77008c96002" (page "5"))
+      )
+    )
+  )
+
+  (sheet (at 50.8 20.32) (size 22.86 21.59) (fields_autoplaced)
+    (stroke (width 0.1524) (type solid))
+    (fill (color 0 0 0 0.0000))
+    (uuid 8dd61245-073c-4601-b50e-3ef8b6c2393c)
+    (property "Sheetname" "TFT_ST7735" (at 50.8 19.6084 0)
+      (effects (font (size 1.27 1.27)) (justify left bottom))
+    )
+    (property "Sheetfile" "TFT_ST7735.kicad_sch" (at 50.8 42.4946 0)
+      (effects (font (size 1.27 1.27)) (justify left top))
+    )
+    (instances
+      (project "RP2040_KBD"
+        (path "/e263e983-43e8-48d0-a73e-d77008c96002" (page "3"))
+      )
+    )
+  )
+
+  (sheet (at 24.13 20.32) (size 24.13 21.59) (fields_autoplaced)
+    (stroke (width 0.1524) (type solid))
+    (fill (color 0 0 0 0.0000))
+    (uuid b273a34d-1f41-4c6b-9f34-89419c9a3117)
+    (property "Sheetname" "MCU" (at 24.13 19.6084 0)
+      (effects (font (size 1.27 1.27)) (justify left bottom))
+    )
+    (property "Sheetfile" "MCU.kicad_sch" (at 24.13 42.4946 0)
+      (effects (font (size 1.27 1.27)) (justify left top))
+    )
+    (instances
+      (project "RP2040_KBD"
+        (path "/e263e983-43e8-48d0-a73e-d77008c96002" (page "2"))
+      )
+    )
+  )
+
+  (sheet (at 124.46 20.32) (size 20.32 21.59) (fields_autoplaced)
+    (stroke (width 0.1524) (type solid))
+    (fill (color 0 0 0 0.0000))
+    (uuid c15450fa-22f8-40cc-a20e-c2b57d8c482e)
+    (property "Sheetname" "POWER_CAP" (at 124.46 19.6084 0)
+      (effects (font (size 1.27 1.27)) (justify left bottom))
+    )
+    (property "Sheetfile" "POWER_CAP.kicad_sch" (at 124.46 42.4946 0)
+      (effects (font (size 1.27 1.27)) (justify left top))
+    )
+    (instances
+      (project "RP2040_KBD"
+        (path "/e263e983-43e8-48d0-a73e-d77008c96002" (page "6"))
+      )
+    )
+  )
+
+  (sheet (at 76.2 20.32) (size 21.59 21.59) (fields_autoplaced)
+    (stroke (width 0.1524) (type solid))
+    (fill (color 0 0 0 0.0000))
+    (uuid df9f2a30-1957-475c-ae57-92c3793c1eda)
+    (property "Sheetname" "KEY_ARRAY" (at 76.2 19.6084 0)
+      (effects (font (size 1.27 1.27)) (justify left bottom))
+    )
+    (property "Sheetfile" "KEY_ARRAY.kicad_sch" (at 76.2 42.4946 0)
+      (effects (font (size 1.27 1.27)) (justify left top))
+    )
+    (instances
+      (project "RP2040_KBD"
+        (path "/e263e983-43e8-48d0-a73e-d77008c96002" (page "4"))
+      )
+    )
+  )
+
+  (sheet_instances
+    (path "/" (page "1"))
+  )
+)
