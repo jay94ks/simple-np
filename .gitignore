@@ -1,2 +1,5 @@
+.vscode/*
 hw/RP2040_KBD-backups/*
 hw/fp-info-cache
+build/*
+*.lck
