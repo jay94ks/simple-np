@@ -1,5 +1,6 @@
 #include "usbd.h"
 #include "../kbd/macro.h"
+#include "../msg/receiver.h"
 #include <bsp/board.h>
 #include <tusb.h>
 
@@ -24,6 +25,7 @@ extern "C" void tud_mount_cb(void) {
     g_usbd_mount = 1;
     usbd_stop_all();
     usbd_hid_reset();
+    msg_frame_receiver_reset();
 }
 
 uint32_t usbd_get_tick() {
@@ -42,6 +44,7 @@ extern "C" void tud_umount_cb(void) {
     usbd_stop_all();
 }
 
+extern void msg_frame_receive(const uint8_t* buf, uint32_t len);
 extern "C" void tud_cdc_rx_cb(uint8_t itf) {
     if (usbd_cdc_connected()) {
         if (!usbd_cdc_read_avail()) {
@@ -52,7 +55,7 @@ extern "C" void tud_cdc_rx_cb(uint8_t itf) {
         uint32_t len = tud_cdc_n_read(itf, buf, sizeof(buf));
 
         if (len) {
-            // TODO: handle CDC command here.
+            msg_frame_receive(buf, len);
         }
     }
 }

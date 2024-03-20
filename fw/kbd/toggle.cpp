@@ -77,6 +77,19 @@ bool kbd_toggle_get(EKey key) {
 }
 
 void kbd_toggle_on_mplay(EKey key, SKeyMap* map);
+void kbd_toggle_numlock(EKey key, SKeyMap* map) {
+    const bool prev = map->ts != 0;
+    ledctl_set(map->led, map->ts = !prev);
+
+    if (map->tcb) {
+        map->tcb(key, map);
+    }
+
+    if (map->ls == EKLS_RISE || map->ls == EKLS_FALL) {
+        usbd_hid_add_key_oneshot(key);
+    }
+}
+
 void kbd_toggle_trigger(EKey key, SKeyMap* map) {
     if (key == EKEY_INV || !map) {
         return;
@@ -88,19 +101,28 @@ void kbd_toggle_trigger(EKey key, SKeyMap* map) {
             return;
         }
 
-        const bool prev = map->ts != 0;
-        ledctl_set(map->led, map->ts = !prev);
+        if (key == EKEY_NUMLOCK) {
+            kbd_toggle_numlock(key, map);
+            return;
+        }
+
+        switch (map->tm) {
+            case ETGM_TOGGLE:
+            case ETGM_ONESHOT: {
+                const bool prev = map->ts != 0;
+                ledctl_set(map->led, map->ts = !prev);
+                break;
+            }
+                
+            case ETGM_NOT_TOGGLE:
+            default: 
+                // --> turn the led on only until 150 ms.
+                ledctl_set(map->led, true, 150);
+                break;
+        }
 
         if (map->tcb) {
             map->tcb(key, map);
-        }
-
-        if (key == EKEY_NUMLOCK) {
-            if (map->ls == EKLS_RISE || map->ls == EKLS_FALL) {
-                usbd_hid_add_key_oneshot(key);
-            }
-
-            return;
         }
 
         // --> handle the default key actions.

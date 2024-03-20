@@ -40,10 +40,13 @@ void ledctl_ndelay();
  */
 void ledctl_task();
 
+// --> specify to turn the LED on permanently.
+#define LEDCTL_PERMANENT_ON 0xffffffffu
+
 /**
  * set the LED state.
  */
-void ledctl_set(uint8_t led, uint8_t state);
+void ledctl_set(uint8_t led, uint8_t state, uint32_t ms = LEDCTL_PERMANENT_ON);
 
 /**
  * get the LED state.

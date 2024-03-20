@@ -27,7 +27,19 @@ enum {
  */
 void kbd_set_scancodes();
 
+// --> key modifiers.
+#define KM_NONE   0x00
+#define KM_LCTRL  0x01
+#define KM_LSHIFT 0x02
+#define KM_LALT   0x04
+#define KM_LMETA  0x08
+#define KM_RCTRL  0x10
+#define KM_RSHIFT 0x20
+#define KM_RALT   0x40
+#define KM_RMETA  0x80
+
 // -- key codes.
+#define  KC_INV                0xFF     // --> pseudo code to indicate error.
 #define  KC_NONE               0x00
 #define  KC_A                  0x04
 #define  KC_B                  0x05

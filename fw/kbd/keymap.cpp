@@ -4,6 +4,7 @@
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
 #include "../usb/usbd.h"
+#include "../msg/command.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -259,15 +260,21 @@ char kbd_get_ch() {
     return ch.def;
 }
 
+bool kbd_keymap_is_ufn(EKey key) {
+    return key == EKEY_UFN_1 || key == EKEY_UFN_2
+        || key == EKEY_UFN_3 || key == EKEY_UFN_4
+        || key == EKEY_UFN_5
+        ;
+}
+
 /**
  * default behaviour for keymap callback.
  */
 void kbd_keymap_cb_defimpl(EKey key, SKeyMap* map) {
-    if (map->ch.scd) {
-        // --> scan code registered.
-        // todo: emit scan code sequence.
-        char temp[4] = {0, };
+    const uint8_t kc = map->ch.scd;
 
+    if (kc && kbd_keymap_is_ufn(key) == false) {
+        // --> generic keys.
         switch(map->ls) {
             case EKLS_HIGH: // --> pressed.
             case EKLS_LOW:  // --> released.
@@ -284,7 +291,30 @@ void kbd_keymap_cb_defimpl(EKey key, SKeyMap* map) {
     }
 
     else {
-        // --> no scan code registered.
-        // todo: handle the user-fn keys.
+        // --> user-fn keys.
+        if (map->ch.scd) {
+            if (map->tm == ETGM_ONESHOT) {
+                if (map->ls == EKLS_RISE) {
+                    usbd_hid_add_key_oneshot(kc);
+                }
+                
+                else if (map->ls == EKLS_FALL) {
+                    usbd_hid_remove_key(key);
+                }
+            }
+
+            else {
+                if (map->ls == EKLS_RISE) {
+                    usbd_hid_add_key(key);
+                }
+
+                else if (map->ls == EKLS_FALL) {
+                    usbd_hid_remove_key(key);
+                }
+            }
+        }
     }
+    
+    // --> notify key's level state.
+    msg_cmd_notify_key(key, EKeyState(map->ls));
 }

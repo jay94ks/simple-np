@@ -85,6 +85,7 @@ struct SKeyChar {
     char def;   // --> default value.
     char alt;   // --> alternative value. (num-lock)
     uint8_t scd; // --> scan code value.
+    uint8_t mod; // --> scan code, modifier value.
 };
 
 // --> forward decl.
@@ -100,6 +101,7 @@ typedef void(*kbd_keymap_cb)(EKey key, SKeyMap* map);
  */
 struct SKeyMap {
     uint8_t ls;                 // --> level state.
+    uint8_t tm;                 // --> toggle mode.
     uint8_t ts;                 // --> toggle state.
     uint8_t tf;                 // --> toggle flag.
     uint8_t led;                // --> led number.

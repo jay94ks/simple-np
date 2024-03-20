@@ -2,6 +2,15 @@
 #define __KBD_TOGGLE_H__
 
 #include "keymap.h"
+
+enum {
+    ETGM_TOGGLE = 0,
+    ETGM_NOT_TOGGLE = 1,
+    ETGM_ONESHOT = 2,
+    ETGM_MAX_VALUE = 3,
+    ETGM_INVALID = 0xFF
+};
+
 void kbd_toggle_init();
 
 /**

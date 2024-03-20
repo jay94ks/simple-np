@@ -19,12 +19,16 @@ add_executable(simple_np
     usb/usbd_uid.cpp
     usb/usbd_event.cpp
     usb/usbd_hid.cpp
+    msg/frame.cpp
+    msg/receiver.cpp
+    msg/command.cpp
 )
 
 pico_enable_stdio_usb(simple_np 0)
 target_link_libraries(simple_np
     pico_stdlib
     pico_unique_id
+    pico_bootrom
 #    pico_stdio_usb
 #    pico_multicore
     tinyusb_device

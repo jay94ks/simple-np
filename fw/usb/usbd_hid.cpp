@@ -1,14 +1,25 @@
 #include "usbd.h"
 #include "../kbd/keymap.h"
+#include "../ledctl.h"
 #include <tusb.h>
 #include <stdlib.h>
 
 extern "C" void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) {
   (void) instance;
-  (void) report_id;
-  (void) report_type;
-  (void) buffer;
-  (void) bufsize;
+
+    if (report_type == HID_REPORT_TYPE_OUTPUT && report_id == RID_KEYBOARD) {
+        if (bufsize < 1) {
+            return;
+        }
+
+        // --> receive keyboard LED status.
+        const uint8_t kbd_leds = buffer[0];
+        if ((kbd_leds & KEYBOARD_LED_NUMLOCK) != 0) {
+            ledctl_set(LED_NUMLOCK, true);
+        } else {
+            ledctl_set(LED_NUMLOCK, false);
+        }
+    }
 }
 
 extern "C" uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen) {
@@ -57,6 +68,7 @@ void usbd_hid_task() {
 
         uint8_t buf[6] = {0, };
         uint8_t buf_pos = 0;
+        uint8_t mod_bits = 0;
 
         for (uint8_t i = 0; i < 6; ++i) {
             const EKey key = EKey(g_usbd_hid_key_next[i]);
@@ -65,8 +77,10 @@ void usbd_hid_task() {
             }
 
             const SKeyMap* ptr = kbd_get_ptr(key);
-            if (ptr) {
+            if (ptr && ptr->ch.scd) {
                 buf[buf_pos++] = ptr->ch.scd;
+                mod_bits |= ptr->ch.mod;
+
                 if (buf_pos >= 6) {
                     break;
                 }
@@ -78,7 +92,7 @@ void usbd_hid_task() {
             &g_usbd_hid_key_prev, &g_usbd_hid_key_next, 
             sizeof(g_usbd_hid_key_next));
 
-        tud_hid_keyboard_report(RID_KEYBOARD, 0, buf);
+        tud_hid_keyboard_report(RID_KEYBOARD, mod_bits, buf);
 
         for(uint8_t i = 0; i < 6; ++i) {
             if (g_usbd_hid_key_rmp[i] != EKEY_INV) {
