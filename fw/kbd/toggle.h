@@ -12,11 +12,12 @@ enum {
 };
 
 void kbd_toggle_init();
+void kbd_toggle_reported(bool numlock);
 
 /**
  * set the toggle state by key.
  */
-void kbd_toggle_set(EKey key, bool state);
+//void kbd_toggle_set(EKey key, bool state, bool trigger = true);
 bool kbd_toggle_get(EKey key);
 
 /**

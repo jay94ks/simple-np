@@ -4,6 +4,7 @@
 #include "../usb/usbd.h"
 #include "pico/bootrom.h"
 #include "pico/stdlib.h"
+#include "../tft/tft.h"
 #include <string.h>
 
 const SMsgCmdTbl g_msg_cmd_tbl[] = {
@@ -69,12 +70,14 @@ void msg_cmd_notify_key(EKey key, EKeyState state) {
 
     // --> emit reply through CDC.
     usbd_cdc_transmit(buf, rlen);
+    usbd_cdc_flush();
 }
 
 // ---
 void on_msgh_nop(const SMsgFrame* frame) {
     // nop --> just echo.
     msg_handler_reply(frame, frame->data, frame->len);
+    tft_print("OP: NOP.\n");
 }
 
 /**

@@ -1,6 +1,7 @@
 #include "receiver.h"
 #include "command.h"
 #include "frame.h"
+#include "../usb/usbd.h"
 
 SMsgDecodeCtx g_msg_decoder;
 

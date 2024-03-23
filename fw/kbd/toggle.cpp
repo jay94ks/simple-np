@@ -55,15 +55,33 @@ void kbd_toggle_init() {
     }
 }
 
-void kbd_toggle_set(EKey key, bool state) {
-    if (SKeyMap* map = kbd_get_ptr(key)) {
-        if (!map->tf) {
-            return;
-        }
+void kbd_toggle_on_numlock(EKey key, SKeyMap* map);
+void kbd_toggle_reported(bool numlock) {
+    SKeyMap* map = kbd_get_ptr(EKEY_NUMLOCK);
+    const uint8_t old_ts = map->ts;
 
-        kbd_toggle_trigger(key, map);
+    if (numlock) {
+        ledctl_set(LED_NUMLOCK, true);
+        map->ts = 1;
+    } else {
+        ledctl_set(LED_NUMLOCK, false);
+        map->ts = 0;
+    }
+
+    if (old_ts != map->ts) {
+        kbd_toggle_on_numlock(EKEY_NUMLOCK, map);
     }
 }
+
+// void kbd_toggle_set(EKey key, bool state, bool trigger) {
+//     if (SKeyMap* map = kbd_get_ptr(key)) {
+//         if (!map->tf) {
+//             return;
+//         }
+
+//         kbd_toggle_trigger(key, map);
+//     }
+// }
 
 bool kbd_toggle_get(EKey key) {
     if (SKeyMap* map = kbd_get_ptr(key)) {
@@ -79,17 +97,23 @@ bool kbd_toggle_get(EKey key) {
 
 void kbd_toggle_on_mplay(EKey key, SKeyMap* map);
 void kbd_toggle_on_mrecord(EKey key, SKeyMap* map);
+
 void kbd_toggle_numlock(EKey key, SKeyMap* map) {
     const bool prev = map->ts != 0;
+    
     ledctl_set(map->led, map->ts = !prev);
-
-    if (map->tcb) {
-        map->tcb(key, map);
-    }
+    kbd_toggle_on_numlock(key, map);
 
     if (map->ls == EKLS_RISE || map->ls == EKLS_FALL) {
         usbd_hid_add_key_oneshot(key);
     }
+}
+
+void kbd_toggle_on_numlock(EKey key, SKeyMap* map) {
+    if (map->tcb) {
+        map->tcb(key, map);
+    }
+
     if (map->ts) {
         tft_print("[NUMLOCK] ON\n");
     } else {

@@ -1,16 +1,17 @@
 #include "usbd.h"
 #include "tusb.h"
+#include "../tusb_config.h"
+#include "../tft/tft.h"
 
 enum {
-    ITF_NUM_HID = 0,
-    ITF_NUM_CDC,
+    ITF_NUM_CDC = 0,
     ITF_NUM_CDC_DATA,
+    ITF_NUM_HID,
     ITF_NUM_TOTAL
 };
 
-#define PID_MAP(itf, n)   ((CFG_TUD_##itf) << (n))
 #define USB_VID             0x8857
-#define USB_PID             0x1000 | PID_MAP(CDC, 0) | PID_MAP(HID, 2)
+#define USB_PID             0x0323
 #define USB_BCD             0x0200
 
 const tusb_desc_device_t g_usbd_device = {
@@ -43,10 +44,11 @@ const uint8_t g_usbd_conf[] = {
     TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_HID_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 200),
 
     // --> interface number, string index, protocol, report descriptor len, EP In address, size & polling interval
-    TUD_HID_DESCRIPTOR(ITF_NUM_HID, 0, HID_ITF_PROTOCOL_NONE, sizeof(g_usbd_hid_report), EPNUM_HID, CFG_TUD_HID_EP_BUFSIZE, 5),
+    TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 4, EPNUM_CDC_NOTIF, 8, 0x80 | EPNUM_CDC_DATA, EPNUM_CDC_DATA, 64),
 
     // --> interface number, string index, protocol, report descriptor len, EP In address, size & polling interval
-    TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 64),
+    TUD_HID_DESCRIPTOR(ITF_NUM_HID, 0, HID_ITF_PROTOCOL_NONE, sizeof(g_usbd_hid_report), EPNUM_HID, CFG_TUD_HID_EP_BUFSIZE, 5),
+
 };
 
 // --> callback to provide USB device descriptor.
@@ -134,7 +136,6 @@ extern "C" const uint16_t* tud_descriptor_string_cb(uint8_t index, uint16_t lang
     return g_usbd_desc_temp;
 }
 
-
 void usbd_init() {
     usbd_event_init();
     usbd_hid_init();
@@ -148,24 +149,22 @@ void usbd_task() {
 }
 
 bool usbd_cdc_connected() {
-    return tud_cdc_connected();
+    return tud_cdc_n_connected(0);
 }
 
 bool usbd_cdc_read_avail() {
-    return tud_cdc_available();
+    return tud_cdc_n_available(0);
 }
 
 uint32_t usbd_cdc_transmit(const uint8_t* buf, uint32_t len) {
-    if (!usbd_cdc_connected()) {
-        return 0;
-    }
+    tud_task();
 
-    return tud_cdc_write(buf, len);
+    return tud_cdc_n_write(0, buf, len);
 }
 
 // --> flush transmit-pending bytes.
 uint32_t usbd_cdc_flush() {
-    return tud_cdc_write_flush();
+    return tud_cdc_n_write_flush(0);
 }
 
 bool usbd_hid_notify(uint8_t mod, uint8_t scancode) {

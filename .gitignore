@@ -3,3 +3,6 @@ hw/RP2040_KBD-backups/*
 hw/fp-info-cache
 build/*
 *.lck
+/app_pc/.vs
+/app_pc/*/bin
+/app_pc/*/obj

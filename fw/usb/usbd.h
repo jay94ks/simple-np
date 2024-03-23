@@ -9,9 +9,8 @@ enum {
 
 enum {
     EPNUM_HID       = 0x81,
-    EPNUM_CDC_OUT   = 0x02,
-    EPNUM_CDC_IN    = 0x83,
-    EPNUM_CDC_NOTIF = 0x84,
+    EPNUM_CDC_NOTIF = 0x83,
+    EPNUM_CDC_DATA  = 0x04,
 };
 
 #define MAX_UID_BYTES 8
