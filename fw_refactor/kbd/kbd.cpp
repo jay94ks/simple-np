@@ -3,6 +3,7 @@
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include <string.h>
+#include <vector>
 
 #define KEY_MAP_UNMAPPED { 0, 0, 0, 0 }
 
@@ -45,6 +46,7 @@ Kbd::Kbd() {
     memset(_keys, 0, sizeof(_keys));
     memset(_prevRows, 0, sizeof(_prevRows));
     memset(_nextRows, 0, sizeof(_nextRows));
+    memset(_handlers, 0, sizeof(_handlers));
 
     uint8_t order = 0;
     for(uint8_t i = 0; i < EKEY_MAX; ++i) {
@@ -58,6 +60,7 @@ Kbd::Kbd() {
     }
     
     _orderedKeys[order++] = EKEY_HIDDEN;
+    _countOfHandlers = 0;
 
     for(uint8_t row = 0; row < MAX_ROWS; ++row) {
         const uint8_t pin = ROW_PINS[row];
@@ -73,6 +76,85 @@ Kbd::Kbd() {
         gpio_set_dir(pin, GPIO_IN);
         gpio_pull_down(pin);
     }
+}
+
+bool Kbd::push(IKeyHandler* handler) {
+    if (_countOfHandlers >= MAX_HANDLERS) {
+        return false;
+    }
+
+    // --> shift all handlers to back.
+    uint8_t index = _countOfHandlers;
+    for(uint8_t i = 1; i < _countOfHandlers; ++i) {
+        _handlers[i] = _handlers[i - 1];
+    }
+
+    _handlers[0] = handler;
+    return false;
+}
+
+bool Kbd::pop(IKeyHandler* handler) {
+    if (_countOfHandlers <= 0) {
+        return false;
+    }
+
+    if (handler == nullptr) {
+        for(uint8_t i = 0; i < _countOfHandlers - 1; ++i) {
+            _handlers[i] = _handlers[i + 1];
+        }
+
+        _countOfHandlers--;
+        return true;
+    }
+
+    // --> find index of handler.
+    int16_t index = -1;
+    for(uint8_t i = 0; i < _countOfHandlers; ++i) {
+        if (handler == _handlers[i]) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index < 0) {
+        return false;
+    }
+
+    // --> if the handler is last-one,
+    if (index == int16_t(_countOfHandlers - 1)) {
+        _countOfHandlers--;
+        return true;
+    }
+
+    // --> shift all handlers to front.
+    for(uint8_t i = uint8_t(index); i < _countOfHandlers - 1; ++i) {
+        _handlers[i] = _handlers[i + 1];
+    }
+
+    _countOfHandlers--;
+    return true;
+}
+
+bool Kbd::handle(EKey key) {
+    if (key >= EKEY_MAX) {
+        return false;
+    }
+
+    // --> copy all key handlers to avoid handler-set manipulation.
+    std::vector<IKeyHandler*> handlers;
+    for(uint8_t i = 0; i < _countOfHandlers; ++i) {
+        handlers.push_back(_handlers[i]);
+    }
+
+    // --> invoke all key handlers.
+    for(IKeyHandler* handler: handlers) {
+        const EKeyState state = EKeyState(_keys[key].ls);
+        if (handler->onKeyUpdated(this, key, state)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void Kbd::scanOnce() {

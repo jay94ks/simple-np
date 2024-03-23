@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include "keys.h"
 
+// --> forward decls.
+class IKeyHandler;
+
 /**
  * Keyboard class. 
  */
@@ -13,6 +16,7 @@ private:
     static constexpr uint8_t GPIO_DELAY = 5;
     static constexpr uint32_t MAX_ROWS = 5;
     static constexpr uint32_t MAX_COLS = 5;
+    static constexpr uint32_t MAX_HANDLERS = 16;
 
 private:
     static const uint8_t ROW_PINS[5];
@@ -32,8 +36,23 @@ private:
     uint8_t _prevRows[MAX_ROWS];
     uint8_t _nextRows[MAX_ROWS];
 
+    /* key handlers. */
+    IKeyHandler* _handlers[MAX_HANDLERS];
+    uint8_t _countOfHandlers;
+
 private:
     Kbd();
+
+public:
+    /* push a key handler instance. */
+    bool push(IKeyHandler* handler);
+
+    /* pop the key handler instance. */
+    bool pop(IKeyHandler* handler);
+
+private:
+    /* invoke handler for the specified key. */
+    bool handle(EKey key) const;
 
 public:
     /* scan all key states and update. */
@@ -59,6 +78,23 @@ public:
 
     /* get pressing keys based on order value. */
     void getPressingKeys(EKey* outKeys, uint8_t max) const;
+};
+
+
+/**
+ * Keyboard handler interface.
+ */
+class IKeyHandler {
+public:
+    virtual ~IKeyHandler() { }
+
+public:
+    /**
+     * called when key state updated. 
+     * this will be called after applying orders.
+     * if this returns false for the key, it will yield process to other listener.
+     */
+    virtual bool onKeyUpdated(Kbd* kbd, EKey key, EKeyState state) = 0;
 };
 
 #endif
