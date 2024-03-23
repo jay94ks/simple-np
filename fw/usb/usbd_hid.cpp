@@ -14,10 +14,14 @@ extern "C" void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_r
 
         // --> receive keyboard LED status.
         const uint8_t kbd_leds = buffer[0];
+        SKeyMap* map = kbd_get_ptr(EKEY_NUMLOCK);
+        
         if ((kbd_leds & KEYBOARD_LED_NUMLOCK) != 0) {
             ledctl_set(LED_NUMLOCK, true);
+            map->ts = 1;
         } else {
             ledctl_set(LED_NUMLOCK, false);
+            map->ts = 0;
         }
     }
 }

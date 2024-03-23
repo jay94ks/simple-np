@@ -57,11 +57,11 @@ void tft_init() {
     memset(g_tft_prev, 0, sizeof(g_tft_prev));
     memset(g_tft_buf, 0, sizeof(g_tft_buf));
 
+    g_tft_color = TFT_MAKE_COLOR(ECOL_WHITE, ECOL_BLACK);
     for(uint16_t n = 0; n < MAX_TFT_BUF; ++n) {
-        g_tftcol_prev[n] = g_tftcol_buf[n] = ECOL_BLACK;
+        g_tftcol_prev[n] = g_tftcol_buf[n] = g_tft_color;
     }
 
-    g_tft_color = TFT_MAKE_COLOR(ECOL_WHITE, ECOL_WHITE);
 }
 
 void tft_set_backlight(float brightness) {
@@ -93,7 +93,11 @@ void tft_task() {
                 ch = ' ';
             }
 
+            g_main_tft.TFTfillRect(col * 11, 20 * row, 11, 20, bg);
             g_main_tft.TFTdrawChar(col * 11, 20 * row, ch, fg, bg, 2);
+
+            g_tft_prev[cur] = g_tft_buf[cur];
+            g_tftcol_prev[cur] = g_tftcol_buf[cur];
         }
     }
 }
@@ -147,14 +151,7 @@ void tft_print(const char* text, uint16_t max) {
 
         if (ch == '\n') {
             uint8_t row = (g_tft_pos / MAX_TFT_COL) + 1;
-            if (row >= MAX_TFT_ROW) {
-                tft_scroll(1);
-            }
-
-            else {
-                g_tft_pos = row * MAX_TFT_COL;
-            }
-
+            g_tft_pos = row * MAX_TFT_COL;
             continue;
         }
 
@@ -166,6 +163,12 @@ void tft_print(const char* text, uint16_t max) {
 
         g_tft_buf[pos] = ch;
         g_tftcol_buf[pos] = g_tft_color;
+
+        const auto rem = MAX_TFT_BUF - (pos + 1);
+        memset(&g_tft_buf[pos + 1], 0, rem * sizeof(char));
+        for(uint32_t i = pos + 1; i < MAX_TFT_BUF; ++i) {
+            g_tftcol_buf[i] = g_tft_color;
+        }
     }
     //g_tft_pos
 

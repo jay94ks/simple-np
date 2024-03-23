@@ -16,7 +16,7 @@ void core_main() {
     multicore_fifo_push_blocking(1);
     while(1) {
         tft_task();
-        sleep_ms(1);
+        sleep_ms(10);
     }
 }
 
@@ -24,12 +24,13 @@ int main(void) {
     multicore_launch_core1(core_main);
     multicore_fifo_pop_blocking(); // --> wait for core_main.
     
+    tft_print("ledctl: init.\n");
     ledctl_init();
     
-    tft_print("kbd: init\n");
+    tft_print("kbd: init.\n");
     kbd_keymap_init();
     
-    tft_print("usbd: init\n");
+    tft_print("usbd: init.\n");
     usbd_init();
 
     // --> key handling.

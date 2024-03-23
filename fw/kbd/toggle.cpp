@@ -2,6 +2,7 @@
 #include "macro.h"
 #include "../ledctl.h"
 #include "../usb/usbd.h"
+#include "../tft/tft.h"
 
 /**
  * toggle flags.
@@ -77,6 +78,7 @@ bool kbd_toggle_get(EKey key) {
 }
 
 void kbd_toggle_on_mplay(EKey key, SKeyMap* map);
+void kbd_toggle_on_mrecord(EKey key, SKeyMap* map);
 void kbd_toggle_numlock(EKey key, SKeyMap* map) {
     const bool prev = map->ts != 0;
     ledctl_set(map->led, map->ts = !prev);
@@ -88,6 +90,11 @@ void kbd_toggle_numlock(EKey key, SKeyMap* map) {
     if (map->ls == EKLS_RISE || map->ls == EKLS_FALL) {
         usbd_hid_add_key_oneshot(key);
     }
+    if (map->ts) {
+        tft_print("[NUMLOCK] ON\n");
+    } else {
+        tft_print("[NUMLOCK] OFF\n");
+    }
 }
 
 void kbd_toggle_trigger(EKey key, SKeyMap* map) {
@@ -96,6 +103,10 @@ void kbd_toggle_trigger(EKey key, SKeyMap* map) {
     }
 
     if (map->tf) {
+        if (key == EKEY_MREC) {
+            kbd_toggle_on_mrecord(key, map);
+        }
+
         if (key == EKEY_MPLAY) {
             kbd_toggle_on_mplay(key, map);
             return;
@@ -148,9 +159,14 @@ void kbd_toggle_on_mrecord(EKey key, SKeyMap* map) {
             if (SKeyMap* map = kbd_get_ptr(EKEY_MREC)) {
                 ledctl_set(map->led, map->ts = false);
             }
+
+            tft_print("[MACRREC] OFF\n");
         });
         
         ledctl_set(map->led, map->ts);
+        if (map->ts) {
+            tft_print("[MACRREC] ON\n");
+        }
     }
 
     else {
