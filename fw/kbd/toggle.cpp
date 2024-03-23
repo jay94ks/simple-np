@@ -149,25 +149,27 @@ void kbd_toggle_trigger(EKey key, SKeyMap* map) {
             return;
         }
 
-        switch (map->tm) {
-            case ETGM_TOGGLE:
-            case ETGM_ONESHOT: {
-                const bool prev = map->ts != 0;
-                ledctl_set(map->led, map->ts = !prev);
-                break;
+        if (map->ls == EKLS_HIGH) {
+            switch (map->tm) {
+                case ETGM_TOGGLE:
+                case ETGM_ONESHOT: {
+                    const bool prev = map->ts != 0;
+                    ledctl_set(map->led, map->ts = !prev);
+                    break;
+                }
+                    
+                case ETGM_NOT_TOGGLE:
+                default: 
+                    // --> turn the led on only until 150 ms.
+                    ledctl_set(map->led, true, 150);
+                    break;
             }
-                
-            case ETGM_NOT_TOGGLE:
-            default: 
-                // --> turn the led on only until 150 ms.
-                ledctl_set(map->led, true, 150);
-                break;
-        }
 
-        if (map->tcb) {
-            map->tcb(key, map);
+            if (map->tcb) {
+                map->tcb(key, map);
+            }
         }
-
+        
         // --> handle the default key actions.
         kbd_keymap_cb_defimpl(key, map);
     }
