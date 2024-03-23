@@ -41,14 +41,14 @@ const SKeyToggleMap g_key_toggle_map[] = {
 
 #define MAX_KEY_TOGGLES (sizeof(g_key_toggle_map) / sizeof(SKeyToggleMap))
 
-void kbd_toggle_keymap_cb(EKey key, SKeyMap* map);
+void kbd_toggle_trigger(EKey key, SKeyMap* map);
 void kbd_toggle_init() {
 
     for (uint8_t i = 0; i < MAX_KEY_TOGGLES; ++i) {
         const SKeyToggleMap& current = g_key_toggle_map[i];
 
         if (SKeyMap* map = kbd_get_ptr(current.key)) {
-            map->cb = kbd_toggle_keymap_cb;
+            map->cb = kbd_toggle_trigger;
             map->tf = current.flag;
             map->led = current.led;
         }
@@ -121,6 +121,11 @@ void kbd_toggle_on_numlock(EKey key, SKeyMap* map) {
     }
 }
 
+#define KBD_TOGGLE_IGNORE_NON_RISE() \
+    if (map->ls != EKLS_RISE) { \
+        return; \
+    }
+
 void kbd_toggle_trigger(EKey key, SKeyMap* map) {
     if (key == EKEY_INV || !map) {
         return;
@@ -128,15 +133,18 @@ void kbd_toggle_trigger(EKey key, SKeyMap* map) {
 
     if (map->tf) {
         if (key == EKEY_MREC) {
+            KBD_TOGGLE_IGNORE_NON_RISE();
             kbd_toggle_on_mrecord(key, map);
         }
 
         if (key == EKEY_MPLAY) {
+            KBD_TOGGLE_IGNORE_NON_RISE();
             kbd_toggle_on_mplay(key, map);
             return;
         }
 
         if (key == EKEY_NUMLOCK) {
+            KBD_TOGGLE_IGNORE_NON_RISE();
             kbd_toggle_numlock(key, map);
             return;
         }
@@ -163,14 +171,6 @@ void kbd_toggle_trigger(EKey key, SKeyMap* map) {
         // --> handle the default key actions.
         kbd_keymap_cb_defimpl(key, map);
     }
-}
-
-void kbd_toggle_keymap_cb(EKey key, SKeyMap* map) {
-    if (map->ls != EKLS_RISE) {
-        return;
-    }
-
-    kbd_toggle_trigger(key, map);
 }
 
 void kbd_toggle_on_mrecord(EKey key, SKeyMap* map) {
