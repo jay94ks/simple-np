@@ -2,7 +2,7 @@
 ![](hw/RP2040_KBD_LCD.jpg)
 
 ### Video
-![](https://raw.githubusercontent.com/jay94ks/simple-np/main/video.mp4)
+![](video.gif)
 
 ### Schematic
 ![](hw/RP2040_KBD-MCU.png)
