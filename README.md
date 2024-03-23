@@ -1,6 +1,9 @@
 # Simple Number Pad
 ![](hw/RP2040_KBD_LCD.jpg)
 
+### Video
+![](video.mp4)
+
 ### Schematic
 ![](hw/RP2040_KBD-MCU.png)
 See `hw/pdf/*.pdf` files to read more details.
@@ -19,4 +22,5 @@ See `hw/pdf/*.pdf` files to read more details.
 * Anything else...
 
 ### Firmware
-WIP yet.
+basic functionality implemented: keyboard input (HID), CDC tx/rx.
+but, currently CDC rx is not working with unknown reason. :(
