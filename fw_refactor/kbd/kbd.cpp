@@ -149,7 +149,7 @@ bool Kbd::handle(EKey key) const {
     // --> invoke all key handlers.
     for(IKeyHandler* handler: handlers) {
         const EKeyState state = EKeyState(_keys[key].ls);
-        if (handler->onKeyUpdated(this, key, state)) {
+        if (handler->onKeyUpdated(const_cast<Kbd*>(this), key, state)) {
             return true;
         }
     }
