@@ -135,7 +135,7 @@ bool Kbd::pop(IKeyHandler* handler) {
     return true;
 }
 
-bool Kbd::handle(EKey key) {
+bool Kbd::handle(EKey key) const {
     if (key >= EKEY_MAX) {
         return false;
     }
