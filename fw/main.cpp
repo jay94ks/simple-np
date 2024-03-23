@@ -3,23 +3,35 @@
 #include <string.h>
 
 #include "pico/stdlib.h"
+#include "pico/multicore.h"
 #include "kbd/keymap.h"
 #include "kbd/toggle.h"
 #include "ledctl.h"
 #include "usb/usbd.h"
-
 #include "tft/tft.h"
 
-// void core_main();
+void core_main() {
+    tft_init();
+
+    multicore_fifo_push_blocking(1);
+    while(1) {
+        tft_task();
+        sleep_ms(1);
+    }
+}
+
 int main(void) {
-    //stdio_init_all(); // --> debug only.
-    //board_init();
+    multicore_launch_core1(core_main);
+    multicore_fifo_pop_blocking(); // --> wait for core_main.
     
     ledctl_init();
-    tft_init();
-    kbd_keymap_init();
-    usbd_init();
     
+    tft_print("kbd: init\n");
+    kbd_keymap_init();
+    
+    tft_print("usbd: init\n");
+    usbd_init();
+
     // --> key handling.
     while(1) {
         kbd_keymap_task();

@@ -36,7 +36,7 @@ target_link_libraries(simple_np
     pico_unique_id
     pico_bootrom
 #    pico_stdio_usb
-#    pico_multicore
+    pico_multicore
     tinyusb_device
     #tinyusb_board
     hardware_gpio
