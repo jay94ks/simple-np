@@ -1,5 +1,5 @@
 # Simple Number Pad
-![](https://raw.githubusercontent.com/jay94ks/simple-np/main/hw/RP2040_KBD-IMG.jpg)
+![](https://raw.githubusercontent.com/jay94ks/simple-np/main/hw/RP2040_KBD-LCD.jpg)
 
 ### Schematic
 ![](https://raw.githubusercontent.com/jay94ks/simple-np/main/hw/RP2040_KBD-MCU.png)
