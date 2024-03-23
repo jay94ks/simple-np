@@ -2,7 +2,9 @@
 ![](hw/RP2040_KBD_LCD.jpg)
 
 ### Video
-![](video.mp4)
+<video width="320" height="240" controls>
+  <source src="video.mp4" type="video/mp4">
+</video>
 
 ### Schematic
 ![](hw/RP2040_KBD-MCU.png)
