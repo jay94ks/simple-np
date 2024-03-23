@@ -3,13 +3,12 @@
 #include <string.h>
 
 #include "pico/stdlib.h"
-//#include "tusb.h"
-//#include "bsp/board.h"
 #include "kbd/keymap.h"
 #include "kbd/toggle.h"
 #include "ledctl.h"
-
 #include "usb/usbd.h"
+
+#include "tft/tft.h"
 
 // void core_main();
 int main(void) {
@@ -17,6 +16,7 @@ int main(void) {
     //board_init();
     
     ledctl_init();
+    tft_init();
     kbd_keymap_init();
     usbd_init();
     

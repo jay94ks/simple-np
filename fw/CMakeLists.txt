@@ -22,6 +22,12 @@ add_executable(simple_np
     msg/frame.cpp
     msg/receiver.cpp
     msg/command.cpp
+    tft/tft.cpp
+    lib/st7735/ST7735_TFT_Bitmap_Data.cpp
+    lib/st7735/ST7735_TFT_Font.cpp
+    lib/st7735/ST7735_TFT_graphics.cpp
+    lib/st7735/ST7735_TFT_Print.cpp
+    lib/st7735/ST7735_TFT.cpp
 )
 
 pico_enable_stdio_usb(simple_np 0)
@@ -34,6 +40,8 @@ target_link_libraries(simple_np
     tinyusb_device
     #tinyusb_board
     hardware_gpio
+    hardware_spi
+    hardware_pwm
 )
 
 # --> to make TinyUSB to pick up tusb_config.h file.
