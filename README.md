@@ -1,8 +1,8 @@
 # Simple Number Pad
-![](https://raw.githubusercontent.com/jay94ks/simple-np/main/hw/RP2040_KBD-LCD.jpg)
+![](hw/RP2040_KBD_LCD.jpg)
 
 ### Schematic
-![](https://raw.githubusercontent.com/jay94ks/simple-np/main/hw/RP2040_KBD-MCU.png)
+![](hw/RP2040_KBD-MCU.png)
 See `hw/pdf/*.pdf` files to read more details.
 
 ### Features
