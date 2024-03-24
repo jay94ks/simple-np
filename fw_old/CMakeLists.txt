@@ -10,13 +10,18 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 add_executable(simple_np
     main.cpp
-    board/ledctl.cpp
-    kbd/kbd.cpp
-    kbd/scanners/basic.cpp
-    kbd/handlers/numlock.cpp
-    kbd/handlers/userfn.cpp
-    task/task.cpp
-    task/taskqueue.cpp
+    ledctl.cpp
+    kbd/keymap.cpp
+    kbd/toggle.cpp
+    kbd/scancode.cpp
+    kbd/macro.cpp
+    usb/usbd.cpp
+    usb/usbd_uid.cpp
+    usb/usbd_event.cpp
+    usb/usbd_hid.cpp
+    msg/frame.cpp
+    msg/receiver.cpp
+    msg/command.cpp
     tft/tft.cpp
     lib/st7735/ST7735_TFT_Bitmap_Data.cpp
     lib/st7735/ST7735_TFT_Font.cpp
@@ -30,9 +35,10 @@ target_link_libraries(simple_np
     pico_stdlib
     pico_unique_id
     pico_bootrom
+#    pico_stdio_usb
     pico_multicore
-    pico_sync
     tinyusb_device
+    #tinyusb_board
     hardware_gpio
     hardware_spi
     hardware_pwm

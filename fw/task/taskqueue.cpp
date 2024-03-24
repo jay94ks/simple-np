@@ -23,11 +23,13 @@ void TaskQueue::prepare() {
 }
 
 void TaskQueue::enter_cs() {
+    critical_section_yield();
     critical_section_enter_blocking(&_cs);
 }
 
 void TaskQueue::leave_cs() {
     critical_section_exit(&_cs);
+    critical_section_yield();
 }
 
 bool TaskQueue::enqueue(Task* task) {

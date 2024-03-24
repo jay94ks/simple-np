@@ -44,6 +44,7 @@ KbdBasicScanner *KbdBasicScanner::instance() {
 bool KbdBasicScanner::scanOnce() {
     // --> store previous states.
     memcpy(_prevRows, _nextRows, sizeof(_nextRows));
+    memset(_nextRows, 0, sizeof(_nextRows));
     
     // --> scan keys and fill its state to bitmap.
     for (uint8_t row = 0; row < MAX_ROWS; ++row) {
@@ -60,7 +61,7 @@ bool KbdBasicScanner::scanOnce() {
         sleep_us(GPIO_DELAY);
     }
 
-    _empty = memcmp(_prevRows, _nextRows, sizeof(_nextRows)) != 0;
+    _empty = memcmp(_prevRows, _nextRows, sizeof(_nextRows)) == 0;
     return true;
 }
 

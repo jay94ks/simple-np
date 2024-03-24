@@ -1,5 +1,5 @@
 #include "userfn.h"
-
+#include "../../board/ledctl.h"
 
 KbdUserFnHandler* KbdUserFnHandler::instance() {
     static KbdUserFnHandler _handler;
@@ -23,6 +23,21 @@ bool KbdUserFnHandler::onKeyUpdated(Kbd* kbd, EKey key, EKeyState state) {
     int8_t ufn = indexOf(key);
     if (ufn < 0) {
         return false;
+    }
+
+    Ledctl* ledctl = Ledctl::get();
+    ELED led = ELED(ufn + 1);
+    switch(state) {
+        case EKLS_FALL:
+            ledctl->set(led, false);
+            break;
+
+        case EKLS_RISE:
+            ledctl->set(led, true);
+            break;
+
+        default:
+            break;
     }
 
     // TODO: handles user function key.

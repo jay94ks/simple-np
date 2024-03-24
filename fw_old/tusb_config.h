@@ -1,6 +1,5 @@
 
 #ifdef __cplusplus
-#define CFG_TUD_EXTERN  extern "C"
  extern "C" {
 #endif
 
@@ -81,8 +80,6 @@
 // CDC FIFO size of TX and RX
 #define CFG_TUD_CDC_RX_BUFSIZE    64 //(TUD_OPT_HIGH_SPEED ? 512 : 64)
 #define CFG_TUD_CDC_TX_BUFSIZE    64 //(TUD_OPT_HIGH_SPEED ? 512 : 64)
-
 #ifdef __cplusplus
  }
-
 #endif

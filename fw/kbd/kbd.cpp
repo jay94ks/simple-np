@@ -231,13 +231,11 @@ void Kbd::scanOnce() {
     }
 
     // --> no key level change exists.
-    if (scanners.size() <= 0) {
-        return;
+    if (scanners.size() > 0) {
+        // --> reverse pushed list to invoke scanners in reverse order.
+        std::reverse(scanners.begin(), scanners.end());
     }
 
-    // --> reverse pushed list to invoke scanners in reverse order.
-    std::reverse(scanners.begin(), scanners.end());
-    
     // --> update level state and order-set.
     updateOnce(scanners);
 

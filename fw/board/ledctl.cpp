@@ -5,8 +5,8 @@
 #include <string.h>
 
 Ledctl::Ledctl() {
-    _prev = 0xff;
-    _next = 0x00;
+    _prev = 0x00;
+    _next = 0xff;
 
     gpio_init(GPIO_HC595_SER);
     gpio_init(GPIO_HC595_CLK);

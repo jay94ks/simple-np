@@ -1,175 +1,330 @@
 #include "tft.h"
-#include "../lib/st7735/ST7735_TFT.hpp"
+#include "../board/config.h"
+#include "../task/task.h"
 #include "hardware/pwm.h"
-#include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
 
-ST7735_TFT g_main_tft;
+#define TFT_SCREEN_COLOR    ST7735_WHITE
+#define TFT_FONT_COLOR      ST7735_BLACK
 
-constexpr int32_t MAX_TFT_ROW = 4;
-constexpr int32_t MAX_TFT_COL = 14;
-constexpr int32_t MAX_TFT_BUF = MAX_TFT_ROW * MAX_TFT_COL;
+Tft::Tft() {
+    _backlight = 1.0f;
+    _pwmValue = 0;
+    _mode = ETFTM_TTY;
 
-char g_tft_buf[MAX_TFT_BUF];
-char g_tft_prev[MAX_TFT_BUF];
-uint32_t g_tftcol_buf[MAX_TFT_BUF];
-uint32_t g_tftcol_prev[MAX_TFT_BUF];
-
-uint32_t g_tft_color = 0;
-uint32_t g_tft_pos = 0;
-
-#define TFT_GET_BG(x)             uint16_t((x) >> 16)
-#define TFT_GET_FG(x)             uint16_t((x) & 0xffff)
-#define TFT_MAKE_COLOR(fg, bg)    (uint32_t(fg) | (uint32_t((bg)) << 16))
-
-void tft_draw_test(int x, int y) {
-    for(uint8_t lx = 0; lx < x; lx++) {
-        for(uint8_t ly = 0; ly < y; ly++) {
-            g_main_tft.TFTdrawText(lx * 10, 20 * ly, "hello", ECOL_WHITE, ECOL_BLACK, 2);
-        }
+    for(uint16_t i = 0; i < MAX_BUF; ++i) {
+        _ttyBuf[i].fg = TFT_FONT_COLOR;
+        _ttyBuf[i].bg = TFT_SCREEN_COLOR;
+        _ttyBuf[i].ch = ' ';
     }
+
+    _ttyPos = 0;
+    _ttyFg = TFT_FONT_COLOR;
+    _ttyBg = TFT_SCREEN_COLOR;
+
+    _suppressTask = 0;
+    _flushRequired = 0;
+
+    _redraw = Task::create(redraw, this);
+    setupGpio();
+
+    _redraw->reserve();
 }
 
-void tft_backlight_init() {
+void Tft::setupGpio() {
     // --> PWM init.
-    gpio_set_function(28, GPIO_FUNC_PWM);
+    gpio_set_function(GPIO_TFT_BACKLIGHT_PWM, GPIO_FUNC_PWM);
 
     // --> setup duty cycle.
-    uint32_t slice = pwm_gpio_to_slice_num(28);
+    uint32_t slice = pwm_gpio_to_slice_num(GPIO_TFT_BACKLIGHT_PWM);
     pwm_config config = pwm_get_default_config();
     pwm_config_set_clkdiv(&config, 4.f);
     pwm_init(slice, &config, true);
     
-    // --> set the backlight to 100% brightness.
-    tft_set_backlight(100);
+    // --> TFT library init.
+    _tft.TFTSetupGPIO(
+        GPIO_TFT_RST, GPIO_TFT_DC, GPIO_TFT_CS,
+        GPIO_TFT_CLK, GPIO_TFT_DAT);
+        
+    _tft.TFTInitScreenSize(26, 1, 80, 160);
+    _tft.TFTInitPCBType(ST7735_TFT::TFT_ST7735S_Black);
+    _tft.TFTsetRotation(ST7735_TFT::TFT_Degrees_270);
+    _tft.TFTfillScreen(TFT_SCREEN_COLOR);
+    _tft.TFTFontNum(ST7735_TFT::TFTFont_Default);
+
+    // --> apply PWM state.
+    applyPwm();
 }
 
-void tft_init() {
-    tft_backlight_init();
-    
-    g_main_tft.TFTSetupGPIO(21, 20, 17, 18, 19);
-    g_main_tft.TFTInitScreenSize(26, 1, 80, 160);
-    g_main_tft.TFTInitPCBType(ST7735_TFT::TFT_ST7735S_Black);
-    g_main_tft.TFTsetRotation(ST7735_TFT::TFT_Degrees_270);
-    g_main_tft.TFTfillScreen(ECOL_BLACK);
-    g_main_tft.TFTFontNum(g_main_tft.TFTFont_Default);
-    
-    // --> prepare console buffer.
-    memset(g_tft_prev, 0, sizeof(g_tft_prev));
-    memset(g_tft_buf, 0, sizeof(g_tft_buf));
+Tft* Tft::get() {
+    static Tft _tft;
+    return &_tft;
+}
 
-    g_tft_color = TFT_MAKE_COLOR(ECOL_WHITE, ECOL_BLACK);
-    for(uint16_t n = 0; n < MAX_TFT_BUF; ++n) {
-        g_tftcol_prev[n] = g_tftcol_buf[n] = g_tft_color;
+void Tft::applyPwm() {
+    _backlight = _backlight < 0.0f ? 0.0f : _backlight;
+    _backlight = _backlight > 1.0f ? 1.0f : _backlight;
+
+    uint8_t newPwmValue = uint16_t(_backlight * 255.0f);
+    if (newPwmValue != _pwmValue) {
+        pwm_set_gpio_level(GPIO_TFT_BACKLIGHT_PWM, newPwmValue << 8);
+        _pwmValue = newPwmValue;
+    }
+}
+
+void Tft::redraw(const Task* task) {
+    if (Tft* tft = (Tft*) task->getUser()) {
+        tft->redraw();
+    }
+}
+
+void Tft::redraw() {
+    uint8_t mode = _mode;
+    if (_prevMode != mode) {
+        _prevMode = mode;
+        _tft.TFTfillScreen(TFT_SCREEN_COLOR);
     }
 
+    if (mode != ETFTM_TTY) {
+        drawGrp();
+        return;
+    }
+
+    //_tft.TFTdrawText(10, 10, "hello", TFT_FONT_COLOR, TFT_SCREEN_COLOR, 2);
+    drawTty();
 }
 
-void tft_set_backlight(float brightness) {
-    brightness = (brightness > 100) ? 100 : brightness;
-    brightness = (brightness < 0) ? 0 : brightness;
-    uint16_t value = uint16_t(brightness / 100.0f * 255.0f);
-    pwm_set_gpio_level(28, value << 8);
+void Tft::drawGrp() {
+    _tft.TFTdrawBitmap16Data(0, 0,
+        (uint8_t*) _graphicBuf,
+        MAX_GRP_COL, MAX_GRP_ROW);
 }
 
-void tft_task() {
-    for(uint8_t row = 0; row < MAX_TFT_ROW; ++row) {
-        for(uint8_t col = 0; col < MAX_TFT_COL; ++col) {
-            const uint16_t cur = row * MAX_TFT_COL + col;
-            const uint32_t color = g_tftcol_buf[cur];
-            char ch = g_tft_buf[row * MAX_TFT_COL + col];
+void Tft::drawTty() {
+    for(uint8_t row = 0; row < MAX_ROW; ++row) {
+        const uint32_t offset = MAX_COL * row;
 
-            const uint32_t color_p = g_tftcol_prev[cur];
-            const char ch_p = g_tft_prev[cur];
+        for(uint8_t col = 0; col < MAX_COL; ++col) {
+            const STftChar& ch = _ttyBuf[offset + col];
+            const char value = ch.ch ? ch.ch : ' ';
 
-            // --> if nothfing changed, skip current row.
-            if (color_p == color && ch_p == ch) {
-                continue;
-            }
-
-            const uint16_t bg = TFT_GET_BG(color);
-            const uint16_t fg = TFT_GET_FG(color);
-
-            if (ch == 0) {
-                ch = ' ';
-            }
-
-            g_main_tft.TFTfillRect(col * 11, 20 * row, 11, 20, bg);
-            g_main_tft.TFTdrawChar(col * 11, 20 * row, ch, fg, bg, 2);
-
-            g_tft_prev[cur] = g_tft_buf[cur];
-            g_tftcol_prev[cur] = g_tftcol_buf[cur];
+            _tft.TFTdrawChar(
+                col * 11, row * 20,
+                value, ch.fg, ch.bg, 2
+            );
         }
     }
 }
 
-void tft_clear() {
-    // --> prepare console buffer.
-    memset(g_tft_buf, 0, sizeof(g_tft_buf));
-    for(uint16_t n = 0; n < MAX_TFT_BUF; ++n) {
-        g_tftcol_buf[n] = ECOL_BLACK;
-    }
+bool Tft::resume() {
+    if ((--_suppressTask) <= 0) {
+        _suppressTask = 0;
 
-    g_tft_pos = 0;
-}
-
-void tft_scroll(uint8_t n) {
-    if (n > MAX_TFT_ROW) {
-        n = MAX_TFT_ROW;
-    }
-
-    if (n <= 0 || n == MAX_TFT_ROW) {
-        tft_clear();
-        return;
-    }
-
-    if (n == 1) {
-        constexpr uint32_t LINES_TO_MOVE = MAX_TFT_COL * (MAX_TFT_ROW - 1);
-
-        memmove(&g_tft_buf[0], &g_tft_buf[MAX_TFT_COL], LINES_TO_MOVE * sizeof(char));
-        memmove(&g_tftcol_buf[0], &g_tftcol_buf[MAX_TFT_COL], LINES_TO_MOVE * sizeof(uint32_t));
-
-        memset(&g_tft_buf[LINES_TO_MOVE], 0, MAX_TFT_COL);
-        for(uint16_t n = LINES_TO_MOVE; n < MAX_TFT_BUF; ++n) {
-            g_tftcol_buf[n] = ECOL_BLACK;
+        if (_flushRequired) {
+            _flushRequired = 0;
+            _redraw->reserve();
         }
 
-        g_tft_pos = LINES_TO_MOVE;
+        return true;
+    }
+
+    return false;
+}
+
+void Tft::mode(uint8_t mode) {
+    if (mode > ETFTM_GRAPHIC) {
         return;
     }
 
-    for(uint8_t i = 0; i < n; ++i) {
-        tft_scroll(1);
+    suppress();
+
+    if (_mode != mode) {
+        _mode = mode;
+        _flushRequired = 1;
     }
 
-    g_tft_pos = (MAX_TFT_ROW - n) * MAX_TFT_COL;
+    resume();
 }
 
-void tft_print(const char* text, uint16_t max) {
-    while (*text && max) {
-        const char ch = *text++;
-        max--;
+void Tft::scroll(uint8_t n) {
+    if (n <= 0) {
+        return;
+    }
 
-        if (ch == '\n') {
-            uint8_t row = (g_tft_pos / MAX_TFT_COL) + 1;
-            g_tft_pos = row * MAX_TFT_COL;
+    if (n != 1) {
+        for(uint8_t i = 0; i < n; ++i) {
+            scroll(1);
+        }
+
+        return;
+    }
+
+    uint8_t lp = _ttyPos / MAX_COL;
+    if (lp == 0) { // --> 1st line.
+        for(uint8_t i = 0; i < MAX_COL; ++i) {
+            _ttyBuf[i].ch = ' ';
+        }
+
+        _ttyPos = 0;
+        return;
+    }
+
+    else if (lp == MAX_ROW) {
+        lp = MAX_ROW - 1;
+    }
+    
+    // --> scroll up the buffer.
+    memmove(&_ttyBuf[0], &_ttyBuf[MAX_COL], (MAX_BUF - MAX_COL) * sizeof(STftChar));
+
+    // --> fill empty to last line.
+    for(uint8_t i = MAX_BUF - MAX_COL; i < MAX_BUF; ++i) {
+        _ttyBuf[i].ch = ' ';
+        _ttyBuf[i].fg = _ttyFg;
+        _ttyBuf[i].bg = _ttyBg;
+    }
+
+    // --> move position to begining of line.
+    _ttyPos = lp * MAX_COL;
+
+    if (_suppressTask) {
+        _flushRequired = 1;
+        return;
+    }
+
+    _redraw->reserve(true);
+}
+
+void Tft::print(const char* format, ...) {
+    char buf[MAX_BUF + 1] = {0, };
+
+    va_list arg_ptr;
+    va_start(arg_ptr, format);
+    vsnprintf(buf, sizeof(buf), format, arg_ptr);
+    va_end(arg_ptr);
+
+    printText(buf);
+}
+
+void Tft::printText(const char* text) {
+    if (text == nullptr) {
+        return;
+    }
+
+    // --> suppress redraw.
+    suppress();
+
+    // --> fill the buffer.
+    while (*text) {
+        printChar(*text++);
+    }
+
+    // --> then, resume redraw.
+    if (resume() == false) {
+        _flushRequired = 1;
+    }
+}
+
+void Tft::printChar(char ch) {
+    if (ch == 0) {
+        ch = ' ';
+    }
+
+    // --> line feed: scroll up.
+    if (ch == '\n') {
+        uint8_t row = (_ttyPos / MAX_COL) + 1;
+        _ttyPos = row * MAX_COL;
+        return;
+    }
+
+    if (_ttyPos >= sizeof(_ttyBuf)) {
+        scroll(1); // --> scroll once.
+    }
+
+    // --> set the buffer.
+    uint16_t pos = _ttyPos++;
+    
+    _ttyBuf[pos].ch = ch;
+    _ttyBuf[pos].fg = _ttyFg;
+    _ttyBuf[pos].bg = _ttyBg;
+
+    if (_suppressTask) {
+        _flushRequired = 1;
+        return;
+    }
+    
+    _redraw->reserve(true);
+}
+
+uint16_t Tft::getPixel(uint8_t x, uint8_t y) {
+    if (x >= MAX_GRP_COL || y >= MAX_GRP_ROW) {
+        return TFT_SCREEN_COLOR;
+    }
+
+    return _graphicBuf[uint16_t(y) * MAX_GRP_COL + x];
+}
+
+void Tft::setPixel(uint8_t x, uint8_t y, uint16_t value) {
+    if (x >= MAX_GRP_COL || y >= MAX_GRP_ROW) {
+        return;
+    }
+
+    _graphicBuf[uint16_t(y) * MAX_GRP_COL + x] = value;
+    
+    if (_suppressTask) {
+        _flushRequired = 1;
+        return;
+    }
+    
+    _redraw->reserve(true);
+}
+
+void Tft::drawBitmap(int16_t x, int16_t y, const uint16_t* data, uint8_t w, uint8_t h) {
+    if (x >= MAX_GRP_COL || y >= MAX_GRP_ROW) {
+        return;
+    }
+
+    suppress();
+
+    for(uint8_t py = 0; py < h; ++py) {
+        const uint8_t ay = y + py;
+        if (ay < 0) {
             continue;
         }
 
-        if (g_tft_pos >= MAX_TFT_BUF) {
-            tft_scroll(1);
+        if (ay >= MAX_GRP_ROW) {
+            break;
         }
 
-        const auto pos = g_tft_pos++;
+        const uint16_t* row = &data[w * py];
+        const uint16_t* rowMax = row + w;
+        uint16_t rowLen = w;
 
-        g_tft_buf[pos] = ch;
-        g_tftcol_buf[pos] = g_tft_color;
-
-        const auto rem = MAX_TFT_BUF - (pos + 1);
-        memset(&g_tft_buf[pos + 1], 0, rem * sizeof(char));
-        for(uint32_t i = pos + 1; i < MAX_TFT_BUF; ++i) {
-            g_tftcol_buf[i] = g_tft_color;
+        if (x < 0) {
+            data += -x;
+            rowLen += x;
+            x = 0;
         }
+        
+        if (row >= rowMax) {
+            continue;
+        }
+
+        if (x + rowLen > MAX_GRP_COL) {
+            rowLen = MAX_GRP_COL - x;
+
+            if (!rowLen) {
+                continue;
+            }
+        }
+
+        uint16_t* dst = &_graphicBuf[x + ay * MAX_COL];
+        memcpy(dst, row, rowLen * sizeof(uint16_t));
+        _flushRequired = 1;
     }
-    //g_tft_pos
+    
 
+    if (resume() == false) {
+        _flushRequired = 1;
+    }
 }
