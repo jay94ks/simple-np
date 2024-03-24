@@ -52,7 +52,7 @@ extern "C" void tud_cdc_rx_cb(uint8_t itf) {
     tft_print("DATA RECV: ");
     temp[0] = 'a' + itf;
     temp[1] =  '\n';
-    tft_print(temp);
+    tft_print(temp, 3);
 
     uint8_t buf[64] = {0, };
     uint32_t len = tud_cdc_n_read(itf, buf, sizeof(buf));

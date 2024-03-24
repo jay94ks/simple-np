@@ -16,6 +16,10 @@ UsbdHidNotifier *UsbdHidNotifier::instance() {
     return &notifier;
 }
 
+void UsbdHidNotifier::onKeyNotify(const Kbd *kbd, EKey key, EKeyState state) {
+    Usbd::get()->notify(key, state);
+}
+
 void UsbdHidNotifier::onPostKeyNotify(const Kbd *kbd) {
     EKey keys[MAX_REPORT_KEYS];
     for(uint8_t i = 0; i < MAX_REPORT_KEYS; ++i) {

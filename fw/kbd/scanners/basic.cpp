@@ -69,15 +69,15 @@ bool KbdBasicScanner::isEmpty() const {
     return _empty != 0;
 }
 
-bool KbdBasicScanner::takeState(EKey key, bool& prevOut, bool& nextOut) const {
+bool KbdBasicScanner::takeState(EKey key, bool& nextOut) const {
     if (key == EKEY_INV || key == EKEY_HIDDEN || key >= EKEY_MAX) {
+        nextOut = false;
         return false;
     }
     
     const uint8_t row = key / MAX_COLS;
     const uint8_t col = key % MAX_COLS;
     
-    prevOut = (_prevRows[row] & (1 << col)) != 0;
     nextOut = (_nextRows[row] & (1 << col)) != 0;
     return true;
 }

@@ -30,7 +30,7 @@ private:
 
 public:
     /* called when any key notification must be issued. */
-    virtual void onKeyNotify(const Kbd* kbd, EKey key, EKeyState state) { }
+    virtual void onKeyNotify(const Kbd* kbd, EKey key, EKeyState state);
 
     /* called when any key notification must be issued. */
     virtual void onPostKeyNotify(const Kbd* kbd);

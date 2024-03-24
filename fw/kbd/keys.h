@@ -70,6 +70,7 @@ enum EKeyToggle {
     EKTG_NONE = 0,              // --> normal keys: utilize EKLS_*. 
     EKTG_TOGGLE,                // --> toggle keys: numlock, ufn_*.
     EKTG_ONESHOT,               // --> oneshot toggle, 
+    EKTG_MAX_VALUE,
     EKTG_INVALID = 0xff         // --> invalid.
 };
 
@@ -93,6 +94,7 @@ struct SKey {
     uint32_t ms;    // --> timestamp when key state changed.
     uint8_t ls;     // --> key state.
     uint8_t ts;     // --> toggle state.
+    uint8_t tm;     // --> toggle mode.
     SKeyChar ch;    // --> key character.
 };
 

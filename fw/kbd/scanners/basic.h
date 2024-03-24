@@ -8,7 +8,7 @@
  */
 class KbdBasicScanner : public IKeyScanner {
 private:
-    static constexpr uint8_t GPIO_DELAY = 5;
+    static constexpr uint8_t GPIO_DELAY = 10;
     static constexpr uint32_t MAX_ROWS = 5;
     static constexpr uint32_t MAX_COLS = 5;
 
@@ -37,7 +37,7 @@ public:
     virtual bool isEmpty() const;
 
     /* take the latest scanned state and return true if key presents. */
-    virtual bool takeState(EKey key, bool& prevOut, bool& nextOut) const;
+    virtual bool takeState(EKey key, bool& nextOut) const;
 };
 
 #endif

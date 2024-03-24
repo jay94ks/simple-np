@@ -105,7 +105,7 @@ void on_msgh_set_key_reply(uint8_t data[5], uint8_t err,
 /**
  * set the reply from UFN mapping data.
  */
-void on_msgh_set_key_from_ufn(uint8_t data[5], uint8_t ufn) {
+void UsbdCdcMakeUfnReply(uint8_t data[5], uint8_t ufn) {
     uint8_t err = ufn < 5 ? ECERR_SUCCESS : ECERR_INV_UFN;
     uint8_t kc = EKEY_INV;     // --> key scan code.
     uint8_t km = 0;            // --> key modifier mask.
@@ -144,7 +144,7 @@ void on_msgh_get_ufn(const SMsgFrame* frame) {
     
     const uint8_t ufn_no = frame->data[0];
 
-    on_msgh_set_key_from_ufn(data, ufn_no);
+    UsbdCdcMakeUfnReply(data, ufn_no);
     msg_handler_reply(frame, data, sizeof(data));
 }
 
@@ -195,7 +195,7 @@ void on_msgh_set_ufn(const SMsgFrame* frame) {
     }
 
     if (err == 0) {
-        on_msgh_set_key_from_ufn(data, ufn_no);
+        UsbdCdcMakeUfnReply(data, ufn_no);
     }
 
     else {

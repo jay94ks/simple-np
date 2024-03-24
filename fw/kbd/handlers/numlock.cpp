@@ -93,12 +93,6 @@ CFG_TUD_EXTERN void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, h
         
         KbdNumlockHandler::instance()
             ->onKeyNotify(kbd, EKEY_NUMLOCK, EKLS_LOW);
-            
-        if (numlock->ts) {
-            tty_print("[NUMLOCK] ON\n");
-        } else {
-            tty_print("[NUMLOCK] OFF\n");
-        }
     }
 }
 

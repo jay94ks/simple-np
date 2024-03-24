@@ -14,6 +14,7 @@ add_executable(simple_np
     board/usbd.cpp
     board/usbd/descriptors.cpp
     board/usbd/hid_notifier.cpp
+    board/usbd/cdc_message.cpp
     kbd/kbd.cpp
     kbd/scanners/basic.cpp
     kbd/handlers/numlock.cpp

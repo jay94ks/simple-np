@@ -36,8 +36,6 @@ private:
     FScannerList _scanners;
     FHandlerList _handlers;
     FListenerList _listeners;
-
-    mutable FHandlerList _postcb;
     
 private:
     Kbd();
@@ -75,9 +73,6 @@ private:
 
     /* trigger handlers for keys. */
     void trigger();
-
-    /* trigger all post callback handlers. */    
-    bool triggerPostcbs();
 
 public:
     /* get the key pointer for the specified key. */
@@ -120,7 +115,7 @@ public:
     virtual bool isEmpty() const = 0;
 
     /* take the latest scanned state and return true if key presents. */
-    virtual bool takeState(EKey key, bool& prevOut, bool& nextOut) const = 0;
+    virtual bool takeState(EKey key, bool& nextOut) const = 0;
 };
 
 /**
@@ -137,12 +132,6 @@ public:
      * if this returns false for the key, it will yield process to other listener.
      */
     virtual bool onKeyUpdated(Kbd* kbd, EKey key, EKeyState state) = 0;
-
-    /**
-     * called after all `Key-Updated` cycle completed.
-     * If onKeyUpdated returned false, this will not called.
-     */
-    virtual void onPostKeyUpdated(Kbd* kbd) { }
 };
 
 /**

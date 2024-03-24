@@ -14,11 +14,16 @@ private:
     KbdUserFnHandler() { }
     
 public:
+    static constexpr uint32_t MAX_UFN = 5;
+
     /* get the singleton instance. */
     static KbdUserFnHandler* instance();
 
     /* get the index of user function key. */
     static int8_t indexOf(EKey key);
+
+    /* get the key of user function key.*/
+    static EKey keyOf(uint8_t n);
 
 public:
     /**

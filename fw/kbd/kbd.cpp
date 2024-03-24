@@ -214,10 +214,6 @@ bool Kbd::handle(EKey key) const {
     for(IKeyHandler* handler: handlers) {
         const EKeyState state = EKeyState(_keys[key].ls);
         if (handler->onKeyUpdated(const_cast<Kbd*>(this), key, state)) {
-            if (!kbdHasInstance(_postcb, handler)) {
-                _postcb.push_back(handler);
-            }
-
             retval = true;
             break;
         }
@@ -237,32 +233,39 @@ void Kbd::scanOnce() {
     
     for(IKeyScanner* scanner : _scanners) {
         if (scanner->scanOnce()) {
-            if (scanner->isEmpty()) {
-                continue;
-            }
-
             scanners.push_back(scanner);
         }
     }
 
     // --> no key level change exists.
-    if (scanners.size() > 0) {
+    if (scanners.size() <= 0) {
         // --> reverse pushed list to invoke scanners in reverse order.
-        std::reverse(scanners.begin(), scanners.end());
+        return;
     }
 
+    std::reverse(scanners.begin(), scanners.end());
+    
     // --> update level state and order-set.
     updateOnce(scanners);
-
+    
     // --> then, trigger key handlers.
     trigger();
 }
 
-bool kbdGetKeyState(const Kbd::FScannerList& scanners, EKey key, bool& prevOut, bool& nextOut) {
+bool kbdGetKeyState(const Kbd::FScannerList& scanners, EKey key, bool& nextOut) {
     for(IKeyScanner* scanner: scanners) {
-        if (scanner->takeState(key, prevOut, nextOut)) {
+        if (scanner->takeState(key, nextOut)) {
             return true;
         }
+    }
+
+    nextOut = false;
+    return false;
+}
+
+bool kbdSimplifyLevelState(uint8_t ls) {
+    if (ls == EKLS_HIGH || ls == EKLS_RISE) {
+        return true;
     }
 
     return false;
@@ -274,57 +277,60 @@ void Kbd::updateOnce(const FScannerList& scanners) {
 
     for(uint8_t index = 0; index < EKEY_MAX; ++index) {
         const EKey defKey = EKey(index);
-        bool prev = false, next = false;
+        bool next_v = false;
 
-        if (kbdGetKeyState(scanners, defKey, prev, next) == false) {
+        if (kbdGetKeyState(scanners, defKey, next_v) == false) {
             reorder[repos++] = defKey;
             continue;
         }
 
         // --> current key.
-        SKey& key = _keys[index];
+        SKey* key = &_keys[index];
+        uint8_t prev = kbdSimplifyLevelState(key->ls) ? 1 : 0;
+        uint8_t next = next_v ? 1 : 0;
 
         // --> this key has fixed order.
         if (index == EKEY_HIDDEN) {
             continue;
         }
 
-        // --> different.
-        if (prev != next) {
-            key.ht = EKHT_PENDING;
-            key.order = order++;
-            
-            if (next) {
-                key.ls = EKLS_RISE;
+        if (prev == next) {
+            // --> same state.
+            if (key->ls == EKLS_RISE) {
+                key->ls = EKLS_HIGH;
+            }
+
+            else if (key->ls == EKLS_FALL) {
+                key->ls = EKLS_LOW;
             }
 
             else {
-                key.ls = EKLS_FALL;
+                key->ht = EKHT_TRIGGERED;
+                reorder[repos++] = defKey;
+                continue;
             }
+
+            key->ht = EKHT_PENDING;
+            key->order = order++;
+            _orderedKeys[key->order] = defKey;
+            continue;
         }
 
-        else if (key.ls == EKLS_LOW || key.ls == EKLS_HIGH) {
-            reorder[repos++] = defKey;
-            continue; // --> not affected.
+        // --> different.
+        key->ht = EKHT_PENDING;
+        key->order = order++;
+        
+        if (next) {
+            key->ls = EKLS_RISE;
         }
 
-        // --> same state.
         else {
-            key.ht = EKHT_PENDING;
-            key.order = order++;
-
-            if (key.ls == EKLS_RISE) {
-                key.ls == EKLS_HIGH;
-            }
-
-            else if (key.ls == EKLS_FALL) {
-                key.ls = EKLS_LOW;
-            }
+            key->ls = EKLS_FALL;
         }
-
-        _orderedKeys[key.order] = defKey;
+        
+        _orderedKeys[key->order] = defKey;
     }
-    
+
     // --> bubble sort.
     for(uint8_t i = 0; i < repos; ++i) {
         for(uint8_t j = 0; j < repos; ++j) {
@@ -359,12 +365,11 @@ void Kbd::trigger() {
     memcpy(orderedKeys, _orderedKeys, sizeof(orderedKeys));
     bool triggeredAnyway = false;
 
-
     // --> invoke handlers for each keys.
     for(uint8_t i = 0; i < EKEY_MAX; ++i) {
         const EKey order = orderedKeys[i];
         if (order != EKEY_INV) {
-            if (!KBD_IS_PENDING_TRIGGER(_keys[order].ht)) {
+            if (_keys[order].ht != EKHT_PENDING) {
                 continue;
             }
 
@@ -374,7 +379,6 @@ void Kbd::trigger() {
         }
     }
 
-    triggerPostcbs();
     if (triggeredAnyway) {
         FListenerList listeners(_listeners);
         for(IKeyListener* listener: listeners) {
@@ -383,19 +387,6 @@ void Kbd::trigger() {
     }
 
     //_postcb
-}
-
-bool Kbd::triggerPostcbs() {
-    if (!_postcb.size()) {
-        return false;
-    }
-
-    for(IKeyHandler* handler: _postcb) {
-        handler->onPostKeyUpdated(this);
-    }
-
-    _postcb.clear();
-    return true;
 }
 
 SKey* Kbd::getKeyPtr(EKey key) const {
