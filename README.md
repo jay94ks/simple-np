@@ -1,6 +1,10 @@
 # Simple Number Pad
 ![](hw/RP2040_KBD_LCD.jpg)
 
+### License
+* This repository: MIT, partially GPL-v3 due to TFT library.
+* TFT library: GPL-v3, [ST7735_TFT_PICO](https://github.com/gavinlyonsrepo/ST7735_TFT_PICO)
+
 ### Video
 ![](video.gif)
 
