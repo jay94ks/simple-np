@@ -4,6 +4,7 @@
 #include "board/usbd.h"
 #include "task/taskqueue.h"
 #include "pico/stdlib.h"
+#include <tusb.h>
 
 int main(void) {
     tty_print("tft: init.\n");
@@ -31,5 +32,9 @@ int main(void) {
         led->updateOnce();
     
         usbd->stepOnce();
+
+        if (tud_cdc_n_available(0)) {
+            tud_cdc_rx_cb(0);
+        }
     }
 }

@@ -37,6 +37,7 @@ target_link_libraries(simple_np
     pico_multicore
     pico_sync
     tinyusb_device
+    tinyusb_board
     hardware_gpio
     hardware_spi
     hardware_pwm
@@ -45,7 +46,7 @@ target_link_libraries(simple_np
 # --> to make TinyUSB to pick up tusb_config.h file.
 target_include_directories(simple_np
 PRIVATE 
-    .
+    ${CMAKE_CURRENT_LIST_DIR}
     #$ENV{PICO_SDK_PATH}/lib/tinyusb/hw
     #$ENV{PICO_SDK_PATH}/lib/tinyusb/src
 )
