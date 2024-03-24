@@ -2,25 +2,28 @@
 #define __KBD_H__
 
 #include <stdint.h>
+#include <vector>
 #include "keys.h"
 
 // --> forward decls.
+class IKeyScanner;
 class IKeyHandler;
+class IKeyListener;
+
+// --> report ID for keyboard.
+#define RID_KEYBOARD 1
 
 /**
  * Keyboard class. 
  */
 class Kbd {
 public:
-private:
-    static constexpr uint8_t GPIO_DELAY = 5;
-    static constexpr uint32_t MAX_ROWS = 5;
-    static constexpr uint32_t MAX_COLS = 5;
-    static constexpr uint32_t MAX_HANDLERS = 16;
+    // --> shortcuts.
+    using FScannerList = std::vector<IKeyScanner*>;
+    using FHandlerList = std::vector<IKeyHandler*>;
+    using FListenerList = std::vector<IKeyListener*>;
 
 private:
-    static const uint8_t ROW_PINS[5];
-    static const uint8_t COL_PINS[5];
     static const SKeyChar KEY_MAP[EKEY_MAX];
 
 public:
@@ -32,26 +35,32 @@ private:
     mutable SKey _keys[EKEY_MAX];
     EKey _orderedKeys[EKEY_MAX];
     
-    /* key state bitmap. */
-    uint8_t _prevRows[MAX_ROWS];
-    uint8_t _nextRows[MAX_ROWS];
-
     /* key handlers. */
-    IKeyHandler* _handlers[MAX_HANDLERS];
-    uint8_t _countOfHandlers;
-
+    FScannerList _scanners;
+    FHandlerList _handlers;
+    FListenerList _listeners;
+    
 private:
     Kbd();
 
 public:
-    /* peek a key handler instance. */
-    IKeyHandler* peek(uint8_t index) const;
+    /* push a key scanner instance. */
+    bool push(IKeyScanner* scanner);
+
+    /* pop the key scanner instance. */
+    bool pop(IKeyScanner* scanner);
 
     /* push a key handler instance. */
     bool push(IKeyHandler* handler);
 
     /* pop the key handler instance. */
     bool pop(IKeyHandler* handler);
+
+    /* add the key listener instance. */
+    bool listen(IKeyListener* listener);
+
+    /* remove the key listener instance. */
+    bool unlisten(IKeyListener* listener);
 
 private:
     /* invoke handler for the specified key. */
@@ -63,7 +72,7 @@ public:
 
 private:
     /* update all key states. */
-    void updateOnce();
+    void updateOnce(const FScannerList& scanners);
 
     /* trigger handlers for keys. */
     void trigger();
@@ -94,6 +103,23 @@ public:
     bool forceKeyState(EKey key, EKeyState state);
 };
 
+/**
+ * Key scanner.
+ */
+class IKeyScanner {
+public:
+    virtual ~IKeyScanner() { }
+
+public:
+    /* scan once. */
+    virtual bool scanOnce() = 0;
+
+    /* test whether no scanning result changes or not. */
+    virtual bool isEmpty() const = 0;
+
+    /* take the latest scanned state and return true if key presents. */
+    virtual bool takeState(EKey key, bool& prevOut, bool& nextOut) const = 0;
+};
 
 /**
  * Keyboard handler interface.
@@ -109,6 +135,20 @@ public:
      * if this returns false for the key, it will yield process to other listener.
      */
     virtual bool onKeyUpdated(Kbd* kbd, EKey key, EKeyState state) = 0;
+};
+
+/**
+ * Keyboard listener interface. 
+ */
+class IKeyListener {
+public:
+    virtual ~IKeyListener() { }
+
+public:
+    /**
+     * called when key state updated.
+     */
+    virtual void onKeyNotify(const Kbd* kbd, EKey key, EKeyState state) = 0;
 };
 
 #endif

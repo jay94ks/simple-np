@@ -1,14 +1,15 @@
 #include "kbd.h"
 #include "scancode.h"
+#include "scanners/basic.h"
+#include "handlers/numlock.h"
+#include "handlers/userfn.h"
 #include "pico/stdlib.h"
-#include "hardware/gpio.h"
 #include <string.h>
 #include <vector>
+#include <algorithm>
 
 #define KEY_MAP_UNMAPPED { 0, 0, 0, 0 }
 
-const uint8_t Kbd::ROW_PINS[5] = { 0, 1, 2, 3, 4 };
-const uint8_t Kbd::COL_PINS[5] = { 9, 8, 7, 6, 5 };
 const SKeyChar Kbd::KEY_MAP[EKEY_MAX] = {
     KEY_MAP_UNMAPPED,                        // EKEY_UFN_1
     { '/', '/',     KC_KEYPAD_DIVIDE,   0 }, // EKEY_SLASH
@@ -44,9 +45,6 @@ Kbd* Kbd::get() {
 
 Kbd::Kbd() {
     memset(_keys, 0, sizeof(_keys));
-    memset(_prevRows, 0, sizeof(_prevRows));
-    memset(_nextRows, 0, sizeof(_nextRows));
-    memset(_handlers, 0, sizeof(_handlers));
 
     uint8_t order = 0;
     for(uint8_t i = 0; i < EKEY_MAX; ++i) {
@@ -62,106 +60,194 @@ Kbd::Kbd() {
     }
     
     _orderedKeys[order++] = EKEY_HIDDEN;
-    _countOfHandlers = 0;
 
-    for(uint8_t row = 0; row < MAX_ROWS; ++row) {
-        const uint8_t pin = ROW_PINS[row];
-        
-        gpio_init(pin);
-        gpio_set_dir(pin, GPIO_OUT);
-    }
+    // --> push basic scanner here.
+    push(KbdBasicScanner::instance());
 
-    for(uint8_t col = 0; col < MAX_COLS; ++col) {
-        const uint8_t pin = COL_PINS[col];
-        
-        gpio_init(pin);
-        gpio_set_dir(pin, GPIO_IN);
-        gpio_pull_down(pin);
-    }
+    // --> push numlock handler here.
+    push(KbdNumlockHandler::instance());
+    listen(KbdNumlockHandler::instance());
+
+    // --> push user-fn handler here.
+    push(KbdUserFnHandler::instance());
 }
 
-IKeyHandler* Kbd::peek(uint8_t index) const {
-    if (index >= _countOfHandlers) {
-        return nullptr;
+bool Kbd::push(IKeyScanner* scanner) {
+    if (scanner) {
+        _scanners.push_back(scanner);
+        return true;
     }
 
-    return _handlers[index];
+    return false;
 }
 
-bool Kbd::push(IKeyHandler* handler) {
-    if (_countOfHandlers >= MAX_HANDLERS) {
+bool Kbd::pop(IKeyScanner* scanner) {
+    if (_scanners.size() <= 0) {
         return false;
     }
 
-    // --> shift all handlers to back.
-    uint8_t index = _countOfHandlers;
-    for(uint8_t i = 1; i < _countOfHandlers; ++i) {
-        _handlers[i] = _handlers[i - 1];
+    if (scanner == nullptr) {
+        _scanners.pop_back();
+        return true;
     }
 
-    _handlers[0] = handler;
+    auto iter = _scanners.begin();
+    auto sel = _scanners.end();
+
+    // --> find a last handler.
+    while(iter != sel) {
+        if (*iter == scanner) {
+            sel = iter;
+        }
+
+        iter++;
+    }
+
+    if (sel != _scanners.end()) {
+        _scanners.erase(sel);
+        return true;
+    }
+    
+    return true;
+}
+
+bool Kbd::push(IKeyHandler* handler) {
+    if (handler) {
+        _handlers.push_back(handler);
+        return true;
+    }
+
     return false;
 }
 
 bool Kbd::pop(IKeyHandler* handler) {
-    if (_countOfHandlers <= 0) {
+    if (_handlers.size() <= 0) {
         return false;
     }
 
     if (handler == nullptr) {
-        for(uint8_t i = 0; i < _countOfHandlers - 1; ++i) {
-            _handlers[i] = _handlers[i + 1];
-        }
-
-        _countOfHandlers--;
+        _handlers.pop_back();
         return true;
     }
 
-    // --> find index of handler.
-    int16_t index = -1;
-    for(uint8_t i = 0; i < _countOfHandlers; ++i) {
-        if (handler == _handlers[i]) {
-            index = i;
+    auto iter = _handlers.begin();
+    auto sel = _handlers.end();
+
+    // --> find a last handler.
+    while(iter != sel) {
+        if (*iter == handler) {
+            sel = iter;
+        }
+
+        iter++;
+    }
+
+    if (sel != _handlers.end()) {
+        _handlers.erase(sel);
+        return true;
+    }
+    
+    return true;
+}
+
+bool Kbd::listen(IKeyListener* listener) {
+    if (listener == nullptr) {
+        return false;
+    }
+
+    for(IKeyListener* other : _listeners) {
+        if (other == listener) {
+            return false;
+        }
+    }
+
+    _listeners.push_back(listener);
+    return true;
+}
+
+bool Kbd::unlisten(IKeyListener* listener) {
+    if (listener == nullptr) {
+        return false;
+    }
+
+    auto iter = _listeners.begin();
+    while(iter != _listeners.end()) {
+
+        if ((*iter) == listener) {
+            _listeners.erase(iter);
+            return true;
+        }
+
+        iter++;
+    }
+
+    return false;
+}
+
+bool Kbd::handle(EKey key) const {
+    if (key >= EKEY_MAX || _handlers.size() <= 0) {
+        return false;
+    }
+
+    // --> copy all handlers to avoid handler-set manipulation.
+    FHandlerList handlers(_handlers);
+    FListenerList listeners(_listeners);
+    
+    // --> reverse copied list to invoke handlers in reverse order.
+    std::reverse(handlers.begin(), handlers.end());
+    std::reverse(listeners.begin(), listeners.end());
+
+    bool retval = false;
+
+    // --> invoke key handlers.
+    for(IKeyHandler* handler: handlers) {
+        const EKeyState state = EKeyState(_keys[key].ls);
+        if (handler->onKeyUpdated(const_cast<Kbd*>(this), key, state)) {
+            retval = true;
             break;
         }
     }
 
-    if (index < 0) {
-        return false;
+    // --> notify key state.
+    for(IKeyListener* listener: listeners) {
+        const EKeyState state = EKeyState(_keys[key].ls);
+        listener->onKeyNotify(this, key, state);
     }
 
-    // --> if the handler is last-one,
-    if (index == int16_t(_countOfHandlers - 1)) {
-        _countOfHandlers--;
-        return true;
-    }
-
-    // --> shift all handlers to front.
-    for(uint8_t i = uint8_t(index); i < _countOfHandlers - 1; ++i) {
-        _handlers[i] = _handlers[i + 1];
-    }
-
-    _countOfHandlers--;
-    return true;
+    return retval;
 }
 
-bool Kbd::handle(EKey key) const {
-    if (key >= EKEY_MAX|| _countOfHandlers <= 0) {
-        return false;
+void Kbd::scanOnce() {
+    FScannerList scanners;
+    
+    for(IKeyScanner* scanner : _scanners) {
+        if (scanner->scanOnce()) {
+            if (scanner->isEmpty()) {
+                continue;
+            }
+
+            scanners.push_back(scanner);
+        }
     }
 
-    // --> copy all key handlers to avoid handler-set manipulation.
-    IKeyHandler* handlers[16];
-    const uint8_t count = _countOfHandlers;
-    for(uint8_t i = 0; i < count; ++i) {
-        handlers[i] = _handlers[i];
+    // --> no key level change exists.
+    if (scanners.size() <= 0) {
+        return;
     }
 
-    // --> invoke all key handlers.
-    for(uint8_t i = 0; i < count; ++i) {
-        IKeyHandler* handler = handlers[i];
-        const EKeyState state = EKeyState(_keys[key].ls);
-        if (handler->onKeyUpdated(const_cast<Kbd*>(this), key, state)) {
+    // --> reverse pushed list to invoke scanners in reverse order.
+    std::reverse(scanners.begin(), scanners.end());
+    
+    // --> update level state and order-set.
+    updateOnce(scanners);
+
+    // --> then, trigger key handlers.
+    trigger();
+}
+
+bool kbdGetKeyState(const Kbd::FScannerList& scanners, EKey key, bool& prevOut, bool& nextOut) {
+    for(IKeyScanner* scanner: scanners) {
+        if (scanner->takeState(key, prevOut, nextOut)) {
             return true;
         }
     }
@@ -169,47 +255,18 @@ bool Kbd::handle(EKey key) const {
     return false;
 }
 
-void Kbd::scanOnce() {
-    // --> store previous states.
-    memcpy(_prevRows, _nextRows, sizeof(_nextRows));
-    
-    // --> scan keys and fill its state to bitmap.
-    for (uint8_t row = 0; row < MAX_ROWS; ++row) {
-        gpio_put(ROW_PINS[row], 1);
-        sleep_us(GPIO_DELAY);
-
-        for(uint8_t col = 0; col < MAX_COLS; ++col) {
-            if (gpio_get(COL_PINS[col])) {
-                _nextRows[row] |= (1 << col);
-            }
-        }
-
-        gpio_put(ROW_PINS[row], 0);
-        sleep_us(GPIO_DELAY);
-    }
-
-    if (memcmp(_prevRows, _nextRows, sizeof(_nextRows)) == 0) {
-        // --> same state: skip below.
-        return;
-    }
-
-    // --> update level state and order-set.
-    updateOnce();
-
-    // --> then, trigger key handlers.
-    trigger();
-}
-
-void Kbd::updateOnce() {
+void Kbd::updateOnce(const FScannerList& scanners) {
     uint8_t order = 0, repos = 0;
     EKey reorder[EKEY_MAX];
 
     for(uint8_t index = 0; index < EKEY_MAX; ++index) {
-        const uint8_t row = index / MAX_COLS;
-        const uint8_t col = index % MAX_COLS;
+        const EKey defKey = EKey(index);
+        bool prev = false, next = false;
 
-        const uint8_t prev = _prevRows[row] & (1 << col);
-        const uint8_t next = _nextRows[row] & (1 << col);
+        if (kbdGetKeyState(scanners, defKey, prev, next) == false) {
+            reorder[repos++] = defKey;
+            continue;
+        }
 
         // --> current key.
         SKey& key = _keys[index];
@@ -234,7 +291,7 @@ void Kbd::updateOnce() {
         }
 
         else if (key.ls == EKLS_LOW || key.ls == EKLS_HIGH) {
-            reorder[repos++] = EKey(index);
+            reorder[repos++] = defKey;
             continue; // --> not affected.
         }
 
@@ -252,7 +309,7 @@ void Kbd::updateOnce() {
             }
         }
 
-        _orderedKeys[key.order] = EKey(index);
+        _orderedKeys[key.order] = defKey;
     }
     
     // --> bubble sort.
@@ -281,7 +338,7 @@ void Kbd::updateOnce() {
 
 void Kbd::trigger() {
     EKey orderedKeys[EKEY_MAX];
-    if (_countOfHandlers <= 0) {
+    if (_handlers.size() <= 0) {
         return; // --> no handler exists.
     }
 

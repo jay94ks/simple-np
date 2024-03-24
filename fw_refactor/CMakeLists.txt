@@ -10,7 +10,11 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 add_executable(simple_np
     main.cpp
+    board/ledctl.cpp
     kbd/kbd.cpp
+    kbd/scanners/basic.cpp
+    kbd/handlers/numlock.cpp
+    kbd/handlers/userfn.cpp
     task/task.cpp
     task/taskqueue.cpp
     tft/tft.cpp

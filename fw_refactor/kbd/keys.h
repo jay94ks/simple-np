@@ -92,7 +92,6 @@ struct SKey {
     uint8_t ht;     // --> handler triggered or not.
     uint32_t ms;    // --> timestamp when key state changed.
     uint8_t ls;     // --> key state.
-    uint8_t tm;     // --> toggle mode.
     uint8_t ts;     // --> toggle state.
     SKeyChar ch;    // --> key character.
 };

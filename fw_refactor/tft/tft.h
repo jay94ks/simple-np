@@ -99,4 +99,7 @@ public:
     void drawBitmap(int16_t x, int16_t y, const uint16_t* data, uint8_t w, uint8_t h);
 };
 
+/* TTY printf redirection. */
+#define tty_printf(...) Tft::get()->print(__VA_ARGS__)
+
 #endif // __TFT_TFT_H__

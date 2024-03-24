@@ -1,4 +1,5 @@
 #include "tft.h"
+#include "../board/config.h"
 #include "../task/task.h"
 #include "hardware/pwm.h"
 #include <stdio.h>
@@ -34,16 +35,19 @@ Tft::Tft() {
 
 void Tft::setupGpio() {
     // --> PWM init.
-    gpio_set_function(28, GPIO_FUNC_PWM);
+    gpio_set_function(GPIO_TFT_BACKLIGHT_PWM, GPIO_FUNC_PWM);
 
     // --> setup duty cycle.
-    uint32_t slice = pwm_gpio_to_slice_num(28);
+    uint32_t slice = pwm_gpio_to_slice_num(GPIO_TFT_BACKLIGHT_PWM);
     pwm_config config = pwm_get_default_config();
     pwm_config_set_clkdiv(&config, 4.f);
     pwm_init(slice, &config, true);
     
     // --> TFT library init.
-    _tft.TFTSetupGPIO(21, 20, 17, 18, 19);
+    _tft.TFTSetupGPIO(
+        GPIO_TFT_RST, GPIO_TFT_DC, GPIO_TFT_CS,
+        GPIO_TFT_CLK, GPIO_TFT_DAT);
+        
     _tft.TFTInitScreenSize(26, 1, 80, 160);
     _tft.TFTInitPCBType(ST7735_TFT::TFT_ST7735S_Black);
     _tft.TFTsetRotation(ST7735_TFT::TFT_Degrees_270);
@@ -65,7 +69,7 @@ void Tft::applyPwm() {
 
     uint8_t newPwmValue = uint16_t(_backlight * 255.0f);
     if (newPwmValue != _pwmValue) {
-        pwm_set_gpio_level(28, newPwmValue);
+        pwm_set_gpio_level(GPIO_TFT_BACKLIGHT_PWM, newPwmValue);
         _pwmValue = newPwmValue;
     }
 }
