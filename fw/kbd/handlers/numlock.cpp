@@ -35,7 +35,7 @@ bool KbdNumlockHandler::onKeyUpdated(Kbd* kbd, EKey key, EKeyState state) {
     
     SKey* numlock = kbd->getKeyPtr(key);
     switch(state) {
-        case EKLS_FALL: // --> updating on `RELEASING` state.
+        case EKLS_RISE: // --> updating on `RELEASING` state.
             numlock->ts = ~numlock->ts;
             break;
 
@@ -56,7 +56,7 @@ void KbdNumlockHandler::onKeyNotify(const Kbd* kbd, EKey key, EKeyState state) {
     SKey* numlock = kbd->getKeyPtr(key);
     Ledctl::get()->set(ELED_NUMLOCK, numlock->ts);
 
-    if (numlock->ls == EKLS_FALL) {
+    if (state == EKLS_FALL) {
         if (numlock->ts) {
             tty_print("[NUMLOCK] ON\n");
         } else {
@@ -84,15 +84,21 @@ CFG_TUD_EXTERN void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, h
 
         // --> set the received toggle state.
         if ((kbd_leds & KEYBOARD_LED_NUMLOCK) != 0) {
-            numlock->ts = 0x00;
+            numlock->ts = 0xff;
         }
 
         else {
-            numlock->ts = 0xff;
+            numlock->ts = 0x00;
         }
         
         KbdNumlockHandler::instance()
-            ->onKeyNotify(kbd, EKEY_NUMLOCK, EKeyState(numlock->ls));
+            ->onKeyNotify(kbd, EKEY_NUMLOCK, EKLS_LOW);
+            
+        if (numlock->ts) {
+            tty_print("[NUMLOCK] ON\n");
+        } else {
+            tty_print("[NUMLOCK] OFF\n");
+        }
     }
 }
 

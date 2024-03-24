@@ -22,7 +22,6 @@ void UsbdHidNotifier::onPostKeyNotify(const Kbd *kbd) {
         keys[i] = EKEY_INV;
     }
 
-    char debug[7] = { 0, };
     uint8_t keycodes[MAX_REPORT_KEYS] = {0, };
     uint8_t modifier = 0;
 
@@ -38,19 +37,12 @@ void UsbdHidNotifier::onPostKeyNotify(const Kbd *kbd) {
         const SKeyChar ch = kbd->getKeyChar(keys[i]);
         if (ch.kc != KC_NONE) {
             keycodes[index++] = ch.kc;
-
-            if (ch.def) {
-                debug[index - 1] = ch.def;
-            }
         }
 
         if (ch.mod) {
             modifier |= ch.mod;
         }
     }
-
-    if (strlen(debug))
-    tty_print(debug);
 
     // --> report if any keys are changed.
     if (memcmp(_keycodes, keycodes, sizeof(keycodes)) != 0 || _modifier != modifier) {

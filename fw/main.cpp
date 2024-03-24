@@ -17,7 +17,7 @@ int main(void) {
 
     Usbd* usbd = Usbd::get();
     if (!usbd->init()) {
-        tty_print("usbd: FATAL err!\n");
+        tty_print("usb: fatal.\n");
         
         while(true) {
             led->toggle(ELED_MREC);
@@ -26,7 +26,6 @@ int main(void) {
     }
 
     usbd->enableHid();
-    tty_print("usbd: HID enabled.\n");
     while(true) {
         kbd->scanOnce();
         led->updateOnce();
