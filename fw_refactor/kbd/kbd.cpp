@@ -53,10 +53,12 @@ Kbd::Kbd() {
         _keys[i].ch = KEY_MAP[i];
 
         if (i == EKEY_HIDDEN) {
+            _keys[i].order = 24;
             continue;
         }
 
-        _orderedKeys[order++] = EKey(i);
+        _keys[i].order = order++;
+        _orderedKeys[_keys[i].order] = EKey(i);
     }
     
     _orderedKeys[order++] = EKEY_HIDDEN;
@@ -76,6 +78,14 @@ Kbd::Kbd() {
         gpio_set_dir(pin, GPIO_IN);
         gpio_pull_down(pin);
     }
+}
+
+IKeyHandler* Kbd::peek(uint8_t index) const {
+    if (index >= _countOfHandlers) {
+        return nullptr;
+    }
+
+    return _handlers[index];
 }
 
 bool Kbd::push(IKeyHandler* handler) {
@@ -141,13 +151,15 @@ bool Kbd::handle(EKey key) const {
     }
 
     // --> copy all key handlers to avoid handler-set manipulation.
-    std::vector<IKeyHandler*> handlers;
-    for(uint8_t i = 0; i < _countOfHandlers; ++i) {
-        handlers.push_back(_handlers[i]);
+    IKeyHandler* handlers[16];
+    const uint8_t count = _countOfHandlers;
+    for(uint8_t i = 0; i < count; ++i) {
+        handlers[i] = _handlers[i];
     }
 
     // --> invoke all key handlers.
-    for(IKeyHandler* handler: handlers) {
+    for(uint8_t i = 0; i < count; ++i) {
+        IKeyHandler* handler = handlers[i];
         const EKeyState state = EKeyState(_keys[key].ls);
         if (handler->onKeyUpdated(const_cast<Kbd*>(this), key, state)) {
             return true;
@@ -181,8 +193,14 @@ void Kbd::scanOnce() {
         return;
     }
 
-    // --> set frame number for keys to trace level changes.
-    uint8_t order = 0, reverse = EKEY_MAX - 2;
+    // --> update level state and order-set.
+    updateOnce();
+}
+
+void Kbd::updateOnce() {
+    uint8_t order = 0, repos = 0;
+    EKey reorder[EKEY_MAX];
+
     for(uint8_t index = 0; index < EKEY_MAX; ++index) {
         const uint8_t row = index / MAX_COLS;
         const uint8_t col = index % MAX_COLS;
@@ -200,6 +218,9 @@ void Kbd::scanOnce() {
 
         // --> different.
         if (prev != next) {
+            key.ht = EKHT_PENDING;
+            key.order = order++;
+            
             if (next) {
                 key.ls = EKLS_RISE;
             }
@@ -210,23 +231,68 @@ void Kbd::scanOnce() {
         }
 
         else if (key.ls == EKLS_LOW || key.ls == EKLS_HIGH) {
-            _orderedKeys[reverse--] = EKey(index);
+            reorder[repos++] = EKey(index);
             continue; // --> not affected.
         }
 
         // --> same state.
-        else if (key.ls == EKLS_RISE) {
-            key.ls == EKLS_HIGH;
+        else {
+            key.ht = EKHT_PENDING;
+            key.order = order++;
+
+            if (key.ls == EKLS_RISE) {
+                key.ls == EKLS_HIGH;
+            }
+
+            else if (key.ls == EKLS_FALL) {
+                key.ls = EKLS_LOW;
+            }
         }
 
-        else if (key.ls == EKLS_FALL) {
-            key.ls = EKLS_LOW;
-        }
+        _orderedKeys[key.order] = EKey(index);
+    }
+    
+    // --> bubble sort.
+    for(uint8_t i = 0; i < repos; ++i) {
+        for(uint8_t j = 0; j < repos; ++j) {
+            const uint8_t left = _keys[reorder[i]].order;
+            const uint8_t right = _keys[reorder[j]].order;
 
-        // --> alter key order.
-        _orderedKeys[order++] = EKey(index);
-        
-        // --> trigger callbacks.
+            if (left > right) {
+                EKey temp = reorder[i];
+                reorder[i] = reorder[j];
+                reorder[j] = temp;
+            }
+        }
+    }
+
+    // --> then assign keys to order set.
+    const uint8_t offset = order;
+    for(;order < EKEY_MAX; ++order) {
+        const EKey key = reorder[order - offset];
+
+        _keys[key].order = order;
+        _orderedKeys[order] = key;
+    }
+}
+
+void Kbd::trigger() {
+    EKey orderedKeys[EKEY_MAX];
+
+    // --> make snapshot to trigger.
+    memcpy(orderedKeys, _orderedKeys, sizeof(orderedKeys));
+
+    // --> invoke handlers for each keys.
+    for(uint8_t i = 0; i < EKEY_MAX; ++i) {
+        const EKey order = orderedKeys[i];
+        if (order != EKEY_INV) {
+            if (!KBD_IS_PENDING_TRIGGER(_keys[order].ht)) {
+                continue;
+            }
+
+            _keys[order].ht = EKHT_TRIGGERED;
+            handle(order);
+        }
     }
 }
 
@@ -289,4 +355,35 @@ void Kbd::getPressingKeys(EKey* outKeys, uint8_t max) const {
 
         memcpy(outKeys, _orderedKeys, max);
     }
+}
+
+bool Kbd::forceKeyState(EKey key, EKeyState state) {
+    if (key >= EKEY_MAX) {
+        return false;
+    }
+
+    SKey& ref = _keys[key];
+    if (ref.ts == state) {
+        return false;
+    }
+
+    uint8_t order = _keys[key].order;
+
+    // --> changes the key state.
+    ref.ht = EKHT_PENDING;
+    ref.ls = state;
+
+    // --> shift all keys back.
+    for(int8_t i = order; i > 0; --i) {
+        _orderedKeys[i] = _orderedKeys[i - 1];
+        
+        const EKey temp = _orderedKeys[i - 1];
+        _keys[temp].order = i;
+    }
+
+    // --> then, place this key to front.
+    _orderedKeys[0] = key;
+    _keys[key].order = 0;
+
+    return true;
 }

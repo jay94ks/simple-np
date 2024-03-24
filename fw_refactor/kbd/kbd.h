@@ -44,6 +44,9 @@ private:
     Kbd();
 
 public:
+    /* peek a key handler instance. */
+    IKeyHandler* peek(uint8_t index) const;
+
     /* push a key handler instance. */
     bool push(IKeyHandler* handler);
 
@@ -57,6 +60,14 @@ private:
 public:
     /* scan all key states and update. */
     void scanOnce();
+
+private:
+    /* update all key states. */
+    void updateOnce();
+
+public:
+    /* trigger handlers for keys. */
+    void trigger();
 
     /* get the key pointer for the specified key. */
     SKey* getKeyPtr(EKey key) const;
@@ -78,6 +89,9 @@ public:
 
     /* get pressing keys based on order value. */
     void getPressingKeys(EKey* outKeys, uint8_t max) const;
+
+    /* set the key state forcibly. */
+    bool forceKeyState(EKey key, EKeyState state);
 };
 
 

@@ -74,10 +74,22 @@ enum EKeyToggle {
 };
 
 /**
+ * handler triggering state. 
+ */
+enum EKeyTrigger {
+    EKHT_TRIGGERED = 0,
+    EKHT_PENDING
+};
+
+// --> test whether the key is pending or not.
+#define KBD_IS_PENDING_TRIGGER(x)   ((x) == EKHT_PENDING)
+
+/**
  * key map entity. 
  */
 struct SKey {
-    uint8_t order;  // --> level state order.
+    uint8_t order;  // --> level state order, 0: not needed, 1: pending.
+    uint8_t ht;     // --> handler triggered or not.
     uint32_t ms;    // --> timestamp when key state changed.
     uint8_t ls;     // --> key state.
     uint8_t tm;     // --> toggle mode.
