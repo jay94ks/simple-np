@@ -11,6 +11,9 @@ pico_sdk_init()
 add_executable(simple_np
     main.cpp
     board/ledctl.cpp
+    board/usbd.cpp
+    board/usbd/descriptors.cpp
+    board/usbd/hid_notifier.cpp
     kbd/kbd.cpp
     kbd/scanners/basic.cpp
     kbd/handlers/numlock.cpp

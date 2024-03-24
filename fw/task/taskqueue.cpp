@@ -1,5 +1,6 @@
 #include "taskqueue.h"
 #include "pico/multicore.h"
+#include "../tft/tft.h"
 
 #define critical_section_yield() sleep_us(5)
 
@@ -23,13 +24,11 @@ void TaskQueue::prepare() {
 }
 
 void TaskQueue::enter_cs() {
-    critical_section_yield();
     critical_section_enter_blocking(&_cs);
 }
 
 void TaskQueue::leave_cs() {
     critical_section_exit(&_cs);
-    critical_section_yield();
 }
 
 bool TaskQueue::enqueue(Task* task) {
@@ -57,6 +56,8 @@ void TaskQueue::taskRun() {
 
     // --> run the loop.
     while(true) {
+        Tft::get()->redraw();
+
         while(queue->dequeue(&taskPtr)) {
             if (taskPtr) {
                 taskPtr->onExecute();
@@ -64,7 +65,7 @@ void TaskQueue::taskRun() {
         }
 
         // --> sleep to yield priority to other core.
-        sleep_us(10);
+        sleep_ms(1);
     }
 }
 

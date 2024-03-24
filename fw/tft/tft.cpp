@@ -23,13 +23,7 @@ Tft::Tft() {
     _ttyFg = TFT_FONT_COLOR;
     _ttyBg = TFT_SCREEN_COLOR;
 
-    _suppressTask = 0;
-    _flushRequired = 0;
-
-    _redraw = Task::create(redraw, this);
     setupGpio();
-
-    _redraw->reserve();
 }
 
 void Tft::setupGpio() {
@@ -73,18 +67,19 @@ void Tft::applyPwm() {
     }
 }
 
-void Tft::redraw(const Task* task) {
-    if (Tft* tft = (Tft*) task->getUser()) {
-        tft->redraw();
-    }
-}
-
 void Tft::redraw() {
     uint8_t mode = _mode;
     if (_prevMode != mode) {
         _prevMode = mode;
+        _dirty = 1;
         _tft.TFTfillScreen(TFT_SCREEN_COLOR);
     }
+
+    if (_dirty == 0) {
+        return;
+    }
+
+    _dirty = 0;
 
     if (mode != ETFTM_TTY) {
         drawGrp();
@@ -117,34 +112,15 @@ void Tft::drawTty() {
     }
 }
 
-bool Tft::resume() {
-    if ((--_suppressTask) <= 0) {
-        _suppressTask = 0;
-
-        if (_flushRequired) {
-            _flushRequired = 0;
-            _redraw->reserve();
-        }
-
-        return true;
-    }
-
-    return false;
-}
-
 void Tft::mode(uint8_t mode) {
     if (mode > ETFTM_GRAPHIC) {
         return;
     }
 
-    suppress();
-
     if (_mode != mode) {
         _mode = mode;
-        _flushRequired = 1;
+        _dirty = 1;
     }
-
-    resume();
 }
 
 void Tft::scroll(uint8_t n) {
@@ -170,12 +146,12 @@ void Tft::scroll(uint8_t n) {
         return;
     }
 
-    else if (lp == MAX_ROW) {
+    else if (lp >= MAX_ROW) {
         lp = MAX_ROW - 1;
     }
     
     // --> scroll up the buffer.
-    memmove(&_ttyBuf[0], &_ttyBuf[MAX_COL], (MAX_BUF - MAX_COL) * sizeof(STftChar));
+    memcpy(&_ttyBuf[0], &_ttyBuf[MAX_COL], (MAX_BUF - MAX_COL) * sizeof(STftChar));
 
     // --> fill empty to last line.
     for(uint8_t i = MAX_BUF - MAX_COL; i < MAX_BUF; ++i) {
@@ -186,13 +162,7 @@ void Tft::scroll(uint8_t n) {
 
     // --> move position to begining of line.
     _ttyPos = lp * MAX_COL;
-
-    if (_suppressTask) {
-        _flushRequired = 1;
-        return;
-    }
-
-    _redraw->reserve(true);
+    _dirty = 1;
 }
 
 void Tft::print(const char* format, ...) {
@@ -211,18 +181,12 @@ void Tft::printText(const char* text) {
         return;
     }
 
-    // --> suppress redraw.
-    suppress();
-
     // --> fill the buffer.
     while (*text) {
         printChar(*text++);
     }
-
-    // --> then, resume redraw.
-    if (resume() == false) {
-        _flushRequired = 1;
-    }
+    
+    _dirty = 1;
 }
 
 void Tft::printChar(char ch) {
@@ -237,7 +201,7 @@ void Tft::printChar(char ch) {
         return;
     }
 
-    if (_ttyPos >= sizeof(_ttyBuf)) {
+    if (_ttyPos >= MAX_BUF) {
         scroll(1); // --> scroll once.
     }
 
@@ -248,12 +212,7 @@ void Tft::printChar(char ch) {
     _ttyBuf[pos].fg = _ttyFg;
     _ttyBuf[pos].bg = _ttyBg;
 
-    if (_suppressTask) {
-        _flushRequired = 1;
-        return;
-    }
-    
-    _redraw->reserve(true);
+    _dirty = 1;
 }
 
 uint16_t Tft::getPixel(uint8_t x, uint8_t y) {
@@ -270,21 +229,13 @@ void Tft::setPixel(uint8_t x, uint8_t y, uint16_t value) {
     }
 
     _graphicBuf[uint16_t(y) * MAX_GRP_COL + x] = value;
-    
-    if (_suppressTask) {
-        _flushRequired = 1;
-        return;
-    }
-    
-    _redraw->reserve(true);
+    _dirty = 1;
 }
 
 void Tft::drawBitmap(int16_t x, int16_t y, const uint16_t* data, uint8_t w, uint8_t h) {
     if (x >= MAX_GRP_COL || y >= MAX_GRP_ROW) {
         return;
     }
-
-    suppress();
 
     for(uint8_t py = 0; py < h; ++py) {
         const uint8_t ay = y + py;
@@ -320,11 +271,7 @@ void Tft::drawBitmap(int16_t x, int16_t y, const uint16_t* data, uint8_t w, uint
 
         uint16_t* dst = &_graphicBuf[x + ay * MAX_COL];
         memcpy(dst, row, rowLen * sizeof(uint16_t));
-        _flushRequired = 1;
+        _dirty = 1;
     }
     
-
-    if (resume() == false) {
-        _flushRequired = 1;
-    }
 }

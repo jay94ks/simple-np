@@ -10,9 +10,6 @@ class IKeyScanner;
 class IKeyHandler;
 class IKeyListener;
 
-// --> report ID for keyboard.
-#define RID_KEYBOARD 1
-
 /**
  * Keyboard class. 
  */
@@ -39,6 +36,8 @@ private:
     FScannerList _scanners;
     FHandlerList _handlers;
     FListenerList _listeners;
+
+    mutable FHandlerList _postcb;
     
 private:
     Kbd();
@@ -77,6 +76,9 @@ private:
     /* trigger handlers for keys. */
     void trigger();
 
+    /* trigger all post callback handlers. */    
+    bool triggerPostcbs();
+
 public:
     /* get the key pointer for the specified key. */
     SKey* getKeyPtr(EKey key) const;
@@ -97,7 +99,7 @@ public:
     EKey getRecentKey(EKeyState state) const;
 
     /* get pressing keys based on order value. */
-    void getPressingKeys(EKey* outKeys, uint8_t max) const;
+    uint8_t getPressingKeys(EKey* outKeys, uint8_t max) const;
 
     /* set the key state forcibly. */
     bool forceKeyState(EKey key, EKeyState state);
@@ -135,6 +137,12 @@ public:
      * if this returns false for the key, it will yield process to other listener.
      */
     virtual bool onKeyUpdated(Kbd* kbd, EKey key, EKeyState state) = 0;
+
+    /**
+     * called after all `Key-Updated` cycle completed.
+     * If onKeyUpdated returned false, this will not called.
+     */
+    virtual void onPostKeyUpdated(Kbd* kbd) { }
 };
 
 /**
@@ -149,6 +157,11 @@ public:
      * called when key state updated.
      */
     virtual void onKeyNotify(const Kbd* kbd, EKey key, EKeyState state) = 0;
+
+    /**
+     * called after all `Key-Notify` cycle completed. 
+     */
+    virtual void onPostKeyNotify(const Kbd* kbd) { }
 };
 
 #endif

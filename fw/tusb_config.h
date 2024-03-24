@@ -1,7 +1,13 @@
 
 #ifdef __cplusplus
+#ifndef CFG_TUD_EXTERN
 #define CFG_TUD_EXTERN  extern "C"
+#endif
  extern "C" {
+#else
+#ifndef CFG_TUD_EXTERN
+#define CFG_TUD_EXTERN  extern
+#endif
 #endif
 
 //--------------------------------------------------------------------

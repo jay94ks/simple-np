@@ -127,6 +127,7 @@ bool Kbd::pop(IKeyHandler* handler) {
 
     if (handler == nullptr) {
         _handlers.pop_back();
+        _handlers.shrink_to_fit();
         return true;
     }
 
@@ -184,6 +185,17 @@ bool Kbd::unlisten(IKeyListener* listener) {
     return false;
 }
 
+template<typename T>
+bool kbdHasInstance(const std::vector<T*>& list, T* ptr) {
+    for(const T* item : list) {
+        if (item == ptr) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool Kbd::handle(EKey key) const {
     if (key >= EKEY_MAX || _handlers.size() <= 0) {
         return false;
@@ -196,13 +208,16 @@ bool Kbd::handle(EKey key) const {
     // --> reverse copied list to invoke handlers in reverse order.
     std::reverse(handlers.begin(), handlers.end());
     std::reverse(listeners.begin(), listeners.end());
-
     bool retval = false;
 
     // --> invoke key handlers.
     for(IKeyHandler* handler: handlers) {
         const EKeyState state = EKeyState(_keys[key].ls);
         if (handler->onKeyUpdated(const_cast<Kbd*>(this), key, state)) {
+            if (!kbdHasInstance(_postcb, handler)) {
+                _postcb.push_back(handler);
+            }
+
             retval = true;
             break;
         }
@@ -342,6 +357,8 @@ void Kbd::trigger() {
 
     // --> make snapshot to trigger.
     memcpy(orderedKeys, _orderedKeys, sizeof(orderedKeys));
+    bool triggeredAnyway = false;
+
 
     // --> invoke handlers for each keys.
     for(uint8_t i = 0; i < EKEY_MAX; ++i) {
@@ -352,9 +369,33 @@ void Kbd::trigger() {
             }
 
             _keys[order].ht = EKHT_TRIGGERED;
+            triggeredAnyway = true;
             handle(order);
         }
     }
+
+    triggerPostcbs();
+    if (triggeredAnyway) {
+        FListenerList listeners(_listeners);
+        for(IKeyListener* listener: listeners) {
+            listener->onPostKeyNotify(this);
+        }
+    }
+
+    //_postcb
+}
+
+bool Kbd::triggerPostcbs() {
+    if (!_postcb.size()) {
+        return false;
+    }
+
+    for(IKeyHandler* handler: _postcb) {
+        handler->onPostKeyUpdated(this);
+    }
+
+    _postcb.clear();
+    return true;
 }
 
 SKey* Kbd::getKeyPtr(EKey key) const {
@@ -408,14 +449,32 @@ EKey Kbd::getRecentKey(EKeyState state) const {
     return EKEY_INV;
 }
 
-void Kbd::getPressingKeys(EKey* outKeys, uint8_t max) const {
-    if (outKeys) {
-        if (max > EKEY_MAX) {
-            max = EKEY_MAX;
+uint8_t Kbd::getPressingKeys(EKey* outKeys, uint8_t max) const {
+    if (max > EKEY_MAX) {
+        max = EKEY_MAX;
+    }
+
+    uint8_t index = 0;
+    for(uint8_t i = 0; i < EKEY_MAX; ++i) {
+        if (index >= max) {
+            return max;
         }
 
-        memcpy(outKeys, _orderedKeys, max);
+        EKey key = _orderedKeys[i];
+        if (_keys[key].ls == EKLS_HIGH ||
+            _keys[key].ls == EKLS_RISE) 
+        {
+            if (outKeys) {
+                outKeys[index++] = key;
+            }
+
+            else {
+                index++;
+            }
+        }
     }
+
+    return index;
 }
 
 bool Kbd::forceKeyState(EKey key, EKeyState state) {

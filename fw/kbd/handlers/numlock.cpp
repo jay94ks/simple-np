@@ -2,7 +2,9 @@
 #ifdef __INTELLISENSE__
 #include "../../tusb_config.h"
 #endif
+#include "../../board/config.h"
 #include "../../board/ledctl.h"
+#include "../../tft/tft.h"
 #include <tusb.h>
 
 KbdNumlockHandler* KbdNumlockHandler::instance() {
@@ -12,6 +14,22 @@ KbdNumlockHandler* KbdNumlockHandler::instance() {
 
 bool KbdNumlockHandler::onKeyUpdated(Kbd* kbd, EKey key, EKeyState state) {
     if (key != EKEY_NUMLOCK) {
+        switch(key) {
+            case EKEY_NUM_0:
+            case EKEY_NUM_1:
+            case EKEY_NUM_2:
+            case EKEY_NUM_3:
+            case EKEY_NUM_4:
+            case EKEY_NUM_5:
+            case EKEY_NUM_6:
+            case EKEY_NUM_7:
+            case EKEY_NUM_8:
+            case EKEY_NUM_9:
+                return true;
+
+            default:
+                break;
+        }
         return false;
     }
     
@@ -37,6 +55,14 @@ void KbdNumlockHandler::onKeyNotify(const Kbd* kbd, EKey key, EKeyState state) {
     // --> apply toggle state.
     SKey* numlock = kbd->getKeyPtr(key);
     Ledctl::get()->set(ELED_NUMLOCK, numlock->ts);
+
+    if (numlock->ls == EKLS_FALL) {
+        if (numlock->ts) {
+            tty_print("[NUMLOCK] ON\n");
+        } else {
+            tty_print("[NUMLOCK] OFF\n");
+        }
+    }
 }
 
 CFG_TUD_EXTERN void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) {
@@ -58,11 +84,11 @@ CFG_TUD_EXTERN void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, h
 
         // --> set the received toggle state.
         if ((kbd_leds & KEYBOARD_LED_NUMLOCK) != 0) {
-            numlock->ts = 0xff;
+            numlock->ts = 0x00;
         }
 
         else {
-            numlock->ts = 0x00;
+            numlock->ts = 0xff;
         }
         
         KbdNumlockHandler::instance()

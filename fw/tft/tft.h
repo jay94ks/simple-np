@@ -28,6 +28,8 @@ enum ETftMode {
  * TFT display class. 
  */
 class Tft {
+    friend class TaskQueue;
+
 private:
     static constexpr uint32_t MAX_COL = 14;
     static constexpr uint32_t MAX_ROW = 4;
@@ -49,10 +51,7 @@ private:
 
     uint16_t _graphicBuf[MAX_GRP_BUF];   // --> graphic buffer.
     STftChar _ttyBuf[MAX_BUF];          // --> TTY buffer.
-
-    Task* _redraw;                      // --> task to redraw.
-    int32_t _suppressTask;
-    uint8_t _flushRequired;
+    int32_t _dirty;
 
 private:
     Tft();
@@ -64,16 +63,14 @@ private:
     void setupGpio();
     void applyPwm();
 
-private:
-    static void redraw(const Task* task);
+protected:
     void redraw();
+    
+private:
     void drawGrp();
     void drawTty();
 
 public:
-    void suppress() { _suppressTask++; }
-    bool resume();
-
     /* set the display mode. */
     void mode(uint8_t mode);
 

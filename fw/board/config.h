@@ -1,6 +1,9 @@
 #ifndef __BOARD_CONFIG_H__
 #define __BOARD_CONFIG_H__
 
+// --> report ID for keyboard.
+#define RID_KEYBOARD 1
+
 enum {
 
     GPIO_KBD_ROW_1 = 0,
