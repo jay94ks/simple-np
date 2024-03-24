@@ -146,7 +146,7 @@ bool Kbd::pop(IKeyHandler* handler) {
 }
 
 bool Kbd::handle(EKey key) const {
-    if (key >= EKEY_MAX) {
+    if (key >= EKEY_MAX|| _countOfHandlers <= 0) {
         return false;
     }
 
@@ -195,6 +195,9 @@ void Kbd::scanOnce() {
 
     // --> update level state and order-set.
     updateOnce();
+
+    // --> then, trigger key handlers.
+    trigger();
 }
 
 void Kbd::updateOnce() {
@@ -278,6 +281,9 @@ void Kbd::updateOnce() {
 
 void Kbd::trigger() {
     EKey orderedKeys[EKEY_MAX];
+    if (_countOfHandlers <= 0) {
+        return; // --> no handler exists.
+    }
 
     // --> make snapshot to trigger.
     memcpy(orderedKeys, _orderedKeys, sizeof(orderedKeys));

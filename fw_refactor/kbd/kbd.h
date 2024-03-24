@@ -65,10 +65,10 @@ private:
     /* update all key states. */
     void updateOnce();
 
-public:
     /* trigger handlers for keys. */
     void trigger();
 
+public:
     /* get the key pointer for the specified key. */
     SKey* getKeyPtr(EKey key) const;
 
