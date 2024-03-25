@@ -5,6 +5,7 @@
 
 /**
  * Numberpad mode.
+ * This redirect all keys to HID input report.
  */
 class NumpadMode : public IMode {
     DECLARE_SINGLETON_MODE(NumpadMode);
@@ -21,10 +22,6 @@ public:
 
     /* leave from this mode. */
     virtual void leave() override;
-
-public:
-    /* called from main loop. */
-    virtual void stepOnce() override;
 };
 
 #endif

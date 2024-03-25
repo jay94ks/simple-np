@@ -60,6 +60,7 @@ Kbd::Kbd() {
     }
     
     _orderedKeys[order++] = EKEY_HIDDEN;
+    _enabled = 0;
 
     // --> push basic scanner here.
     push(KbdBasicScanner::instance());
@@ -231,8 +232,11 @@ bool Kbd::handle(EKey key) const {
 }
 
 void Kbd::scanOnce() {
+    if (!_enabled) {
+        return;
+    }
+
     FScannerList scanners;
-    
     for(IKeyScanner* scanner : _scanners) {
         if (scanner->scanOnce()) {
             scanners.push_back(scanner);
@@ -513,5 +517,47 @@ bool Kbd::forceKeyState(EKey key, EKeyState state) {
     _orderedKeys[0] = key;
     _keys[key].order = 0;
 
+    return true;
+}
+
+void Kbd::getStateListeners(std::vector<IKbdState*>& listeners) {
+    for(IKeyHandler* handler : _handlers) {
+        listeners.push_back(handler);
+    }
+    
+    for(IKeyListener* listener : _listeners) {
+        listeners.push_back(listener);
+    }
+}
+
+bool Kbd::enable() {
+    if (_enabled) {
+        return false;
+    }
+
+    std::vector<IKbdState*> listeners;
+    getStateListeners(listeners);
+
+    for(IKbdState* listener: listeners) {
+        listener->onEnabled(this);
+    }
+
+    _enabled = 1;
+    return false;
+}
+
+bool Kbd::disable() {
+    if (!_enabled) {
+        return false;
+    }
+
+    std::vector<IKbdState*> listeners;
+    getStateListeners(listeners);
+
+    for(IKbdState* listener: listeners) {
+        listener->onDisabled(this);
+    }
+
+    _enabled = 0;
     return true;
 }

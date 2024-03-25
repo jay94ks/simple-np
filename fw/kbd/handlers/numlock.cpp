@@ -55,7 +55,7 @@ void KbdNumlockHandler::onKeyNotify(const Kbd* kbd, EKey key, EKeyState state) {
     // --> apply toggle state.
     SKey* numlock = kbd->getKeyPtr(key);
     Ledctl::get()->set(ELED_NUMLOCK, numlock->ts);
-
+    
     if (state == EKLS_FALL) {
         if (numlock->ts) {
             tty_print("[NUMLOCK] ON\n");

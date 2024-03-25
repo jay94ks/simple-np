@@ -36,6 +36,9 @@ private:
     FScannerList _scanners;
     FHandlerList _handlers;
     FListenerList _listeners;
+
+    /* enable/disable states. */
+    uint8_t _enabled, _reserved;
     
 private:
     Kbd();
@@ -107,6 +110,21 @@ public:
 
     /* set the key state forcibly. */
     bool forceKeyState(EKey key, EKeyState state);
+
+private:
+    /* get all state listeners. */
+    void getStateListeners(std::vector<IKbdState*>& listeners);
+
+public:
+    /* test whether the keyboard update enabled or not. */
+    bool isEnabled() const { return _enabled != 0; }
+
+    /* enable the keyboard updates. */
+    bool enable();
+
+    /* disable the keyboard updates. */
+    bool disable();
+
 };
 
 /**
@@ -128,9 +146,25 @@ public:
 };
 
 /**
+ * Key handler/listener's base interface.
+ * This is used to get `enable`, `disable` event.
+*/
+class IKbdState {
+public:
+    virtual ~IKbdState() { }
+
+public:
+    /* called when the kbd is enabled. */
+    virtual void onEnabled(const Kbd* kbd) { }
+
+    /* called when the kbd is disabled. */
+    virtual void onDisabled(const Kbd* kbd) { }
+};
+
+/**
  * Keyboard handler interface.
  */
-class IKeyHandler {
+class IKeyHandler : public IKbdState {
 public:
     virtual ~IKeyHandler() { }
 
@@ -146,7 +180,7 @@ public:
 /**
  * Keyboard listener interface. 
  */
-class IKeyListener {
+class IKeyListener : public IKbdState {
 public:
     virtual ~IKeyListener() { }
 
