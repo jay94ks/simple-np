@@ -48,6 +48,18 @@ void UsbdHidNotifier::onPostKeyNotify(const Kbd *kbd) {
         }
     }
 
+    notifyHid(keycodes, modifier);
+}
+
+void UsbdHidNotifier::onUnlisten() {
+    uint8_t keycodes[MAX_REPORT_KEYS] = {0, };
+    uint8_t modifier = 0;
+
+    // --> replace notification as empty.
+    notifyHid(keycodes, modifier);
+}
+
+void UsbdHidNotifier::notifyHid(uint8_t keycodes[6], uint8_t modifier) {
     // --> report if any keys are changed.
     if (memcmp(_keycodes, keycodes, sizeof(keycodes)) != 0 || _modifier != modifier) {
         memcpy(_keycodes, keycodes, sizeof(keycodes)); _modifier = modifier;

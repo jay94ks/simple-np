@@ -30,10 +30,18 @@ private:
 
 public:
     /* called when any key notification must be issued. */
-    virtual void onKeyNotify(const Kbd* kbd, EKey key, EKeyState state);
+    virtual void onKeyNotify(const Kbd* kbd, EKey key, EKeyState state) override;
 
     /* called when any key notification must be issued. */
-    virtual void onPostKeyNotify(const Kbd* kbd);
+    virtual void onPostKeyNotify(const Kbd* kbd) override;
+
+public:
+    /* called when the notifier disabled. */
+    virtual void onUnlisten() override;
+
+private:
+    /* notify HID report. */
+    void notifyHid(uint8_t keycodes[6], uint8_t modifier);
 };
 
 #endif

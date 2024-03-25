@@ -3,6 +3,7 @@
 #include "board/ledctl.h"
 #include "board/usbd.h"
 #include "task/taskqueue.h"
+#include "mode/mode.h"
 #include "pico/stdlib.h"
 #include <tusb.h>
 
@@ -26,15 +27,16 @@ int main(void) {
         }
     }
 
-    usbd->enableHid();
+    // --> try to enter default mode.
+    IMode::trySetCurrent(nullptr);
     while(true) {
         kbd->scanOnce();
         led->updateOnce();
-    
         usbd->stepOnce();
-
-        if (tud_cdc_n_available(0)) {
-            tud_cdc_rx_cb(0);
+        
+        // --> calls mode-specific stepper routine.
+        if (IMode* mode = IMode::getCurrent()) {
+            mode->stepOnce();
         }
     }
 }

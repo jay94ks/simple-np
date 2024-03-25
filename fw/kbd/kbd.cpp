@@ -163,6 +163,7 @@ bool Kbd::listen(IKeyListener* listener) {
     }
 
     _listeners.push_back(listener);
+    listener->onListen();
     return true;
 }
 
@@ -176,6 +177,7 @@ bool Kbd::unlisten(IKeyListener* listener) {
 
         if ((*iter) == listener) {
             _listeners.erase(iter);
+            listener->onUnlisten();
             return true;
         }
 
@@ -263,31 +265,22 @@ bool kbdGetKeyState(const Kbd::FScannerList& scanners, EKey key, bool& nextOut) 
     return false;
 }
 
-bool kbdSimplifyLevelState(uint8_t ls) {
-    if (ls == EKLS_HIGH || ls == EKLS_RISE) {
-        return true;
-    }
-
-    return false;
-}
-
 void Kbd::updateOnce(const FScannerList& scanners) {
     uint8_t order = 0, repos = 0;
     EKey reorder[EKEY_MAX];
 
     for(uint8_t index = 0; index < EKEY_MAX; ++index) {
         const EKey defKey = EKey(index);
-        bool next_v = false;
+        bool next = false;
 
-        if (kbdGetKeyState(scanners, defKey, next_v) == false) {
+        if (kbdGetKeyState(scanners, defKey, next) == false) {
             reorder[repos++] = defKey;
             continue;
         }
 
         // --> current key.
         SKey* key = &_keys[index];
-        uint8_t prev = kbdSimplifyLevelState(key->ls) ? 1 : 0;
-        uint8_t next = next_v ? 1 : 0;
+        bool prev = isKeyDown(defKey);
 
         // --> this key has fixed order.
         if (index == EKEY_HIDDEN) {
@@ -426,6 +419,30 @@ void Kbd::resetKeyChars() {
     for(uint8_t i = 0; i < EKEY_MAX; ++i) {
         _keys[i].ch = KEY_MAP[i];
     }
+}
+
+bool Kbd::isKeyDown(EKey key) const {
+    if (SKey* ptr = getKeyPtr(key)) {
+        return ptr->ls == EKLS_HIGH || ptr->ls == EKLS_RISE;
+    }
+
+    return false;
+}
+
+bool Kbd::isKeyUp(EKey key) const {
+    if (SKey* ptr = getKeyPtr(key)) {
+        return ptr->ls == EKLS_LOW || ptr->ls == EKLS_FALL;
+    }
+
+    return false;
+}
+
+bool Kbd::checkKeyState(EKey key, EKeyState state) const {
+    if (SKey* ptr = getKeyPtr(key)) {
+        return ptr->ls == state;
+    }
+
+    return false;
 }
 
 EKey Kbd::getRecentKey(EKeyState state) const {

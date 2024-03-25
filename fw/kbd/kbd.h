@@ -90,6 +90,15 @@ public:
     /* reset all key character datas. */
     void resetKeyChars();
 
+    /* test whether the key is down or not. */
+    bool isKeyDown(EKey key) const;
+
+    /* test whether the key is up or not. */
+    bool isKeyUp(EKey key) const;
+
+    /* check the key state matches or not. */
+    bool checkKeyState(EKey key, EKeyState state) const;
+
     /* get the last key number in the state. */
     EKey getRecentKey(EKeyState state) const;
 
@@ -151,6 +160,17 @@ public:
      * called after all `Key-Notify` cycle completed. 
      */
     virtual void onPostKeyNotify(const Kbd* kbd) { }
+
+public:
+    /**
+     * called when the listener is registered on the kbd instance.
+     */
+    virtual void onListen() { }
+
+    /**
+     * called when the listener is unregistered from the kbd instance.
+     */
+    virtual void onUnlisten() { }
 };
 
 #endif
