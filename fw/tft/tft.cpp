@@ -5,9 +5,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define TFT_SCREEN_COLOR    ST7735_WHITE
-#define TFT_FONT_COLOR      ST7735_BLACK
-
 Tft::Tft() {
     _backlight = 1.0f;
     _pwmValue = 0;
@@ -162,6 +159,30 @@ void Tft::scroll(uint8_t n) {
 
     // --> move position to begining of line.
     _ttyPos = lp * MAX_COL;
+    _dirty = 1;
+}
+
+void Tft::clear() {
+    uint16_t temp[MAX_GRP_COL];
+
+    /* set TTY buffer to default state. */
+    for(uint16_t i = 0; i < MAX_BUF; ++i) {
+        _ttyBuf[i].ch = ' ';
+        _ttyBuf[i].fg = _ttyFg;
+        _ttyBuf[i].bg = _ttyBg;
+    }
+
+    /* set graphics buffer to background color. */
+    for(uint16_t i = 0; i < MAX_GRP_COL; ++i) {
+        temp[i] = _ttyBg;
+    }
+
+    /* fill graphics buffer faster than individual assignment. */
+    for(uint16_t i = 0; i < MAX_GRP_ROW; ++i) {
+        memcpy(&_graphicBuf[i * MAX_GRP_COL], temp, sizeof(temp));
+    }
+
+    _ttyPos = 0;    
     _dirty = 1;
 }
 

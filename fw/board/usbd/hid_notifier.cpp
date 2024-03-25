@@ -61,8 +61,8 @@ void UsbdHidNotifier::onUnlisten() {
 
 void UsbdHidNotifier::notifyHid(uint8_t keycodes[6], uint8_t modifier) {
     // --> report if any keys are changed.
-    if (memcmp(_keycodes, keycodes, sizeof(keycodes)) != 0 || _modifier != modifier) {
-        memcpy(_keycodes, keycodes, sizeof(keycodes)); _modifier = modifier;
+    if (memcmp(_keycodes, keycodes, sizeof(_keycodes)) != 0 || _modifier != modifier) {
+        memcpy(_keycodes, keycodes, sizeof(_keycodes)); _modifier = modifier;
         tud_hid_keyboard_report(RID_KEYBOARD, modifier, keycodes);
     }
 }

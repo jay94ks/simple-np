@@ -23,6 +23,8 @@ add_executable(simple_np
     task/taskqueue.cpp
     tft/tft.cpp
     mode/mode.cpp
+    mode/numpad.cpp
+    mode/welcome.cpp
     lib/st7735/ST7735_TFT_Bitmap_Data.cpp
     lib/st7735/ST7735_TFT_Font.cpp
     lib/st7735/ST7735_TFT_graphics.cpp

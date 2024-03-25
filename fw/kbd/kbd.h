@@ -7,6 +7,7 @@
 
 // --> forward decls.
 class IKeyScanner;
+class IKbdState;
 class IKeyHandler;
 class IKeyListener;
 

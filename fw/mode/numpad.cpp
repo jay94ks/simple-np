@@ -5,6 +5,10 @@
 
 DEFINE_SINGLETON_MODE(NumpadMode);
 
+NumpadMode::NumpadMode() {
+    
+}
+
 bool NumpadMode::enter() {
     // --> enable HID.
     Usbd::get()->enableHid();
@@ -20,6 +24,9 @@ bool NumpadMode::enter() {
 void NumpadMode::leave() {
     // --> disable HID.
     Usbd::get()->disableHid();
+
+    // --> clear the TFT display.
+    Tft::get()->clear();
 
     // --> disable KBD.
     Kbd::get()->disable();

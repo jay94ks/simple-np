@@ -1,5 +1,5 @@
 #include "mode.h"
-#include "numpad.h"
+#include "welcome.h"
 
 IMode* IMode::CURRENT = nullptr;
 
@@ -8,7 +8,7 @@ bool IMode::trySetCurrent(IMode* mode) {
 
     // --> if nullptr, treat it as wanna enter default.
     if (!mode) {
-        mode = NumpadMode::mode();
+        mode = WelcomeMode::mode();
     }
 
     // --> same mode: ignore.

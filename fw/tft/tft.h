@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include "../lib/st7735/ST7735_TFT.hpp"
 
+// --> color definitions.
+#define TFT_SCREEN_COLOR    ST7735_WHITE
+#define TFT_FONT_COLOR      ST7735_BLACK
+
 // --> forward decls.
 class Task;
 
@@ -71,11 +75,38 @@ private:
     void drawTty();
 
 public:
+    /* get the raw device. */
+    ST7735_TFT* raw() const { 
+        return const_cast<ST7735_TFT*>(&_tft);
+    }
+
     /* set the display mode. */
     void mode(uint8_t mode);
 
     /* scroll TTY buffer. */
     void scroll(uint8_t n);
+
+    /* clear the TTY screen. */
+    void clear();
+
+    /* set the TTY cursor position. */
+    void setCursor(uint8_t x, uint8_t y) {
+        if (x > MAX_COL) {
+            x = MAX_COL;
+        }
+
+        if (y > MAX_ROW) {
+            y = MAX_ROW;
+        }
+
+        _ttyPos = x + y * MAX_COL;
+    }
+
+    /* set color, fg and bg. */
+    void setColor(uint16_t fg, uint16_t bg) { _ttyFg = fg; _ttyBg = bg; }
+
+    /* set color. */
+    void setColor(uint16_t fg) { _ttyFg = fg; }
 
     /* print string by format. */
     void print(const char* format, ...);
