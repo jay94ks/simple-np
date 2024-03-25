@@ -15,6 +15,7 @@ bool NumpadMode::enter() {
 
     // --> set the TFT mode to TTY.
     Tft::get()->mode(ETFTM_TTY);
+    Tft::get()->clear();
 
     // --> enable KBD.
     Kbd::get()->enable();    
@@ -26,7 +27,7 @@ void NumpadMode::leave() {
     Usbd::get()->disableHid();
 
     // --> clear the TFT display.
-    Tft::get()->clear();
+    //Tft::get()->clear();
 
     // --> disable KBD.
     Kbd::get()->disable();
