@@ -26,5 +26,9 @@ See `hw/pdf/*.pdf` files to read more details.
 * Anything else...
 
 ### Firmware
-basic functionality implemented: keyboard input (HID), CDC tx/rx.
-but, currently CDC rx is not working with unknown reason. :(
+Current planed features are implemented.
+Now, calculator mode will be implemented soon.
+
+### `tinyusb` RX callback.
+Don't use `0.15.0` distribution that included on `pico-sdk`.
+Update its branch to above version, then it works perfectly.

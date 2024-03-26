@@ -353,9 +353,9 @@ namespace SimpleNP.Acm.Drivers
                 Message[1] = Cmd;
                 Message[2] = (byte) Bytes.Length;
                 Message[Message.Length - 2] = ETX;
-                Message[Message.Length - 1] = Checksum(Message, 0, Message.Length - 1);
+                Message[Message.Length - 1] = Checksum(Message, 0, Message.Length - 2);
 
-                try { Com.Write(Bytes, 0, Bytes.Length); }
+                try { Com.Write(Message, 0, Message.Length); }
                 catch
                 {
                     Dispose();
