@@ -15,15 +15,15 @@ const SWSchTypographyFrame WelcomeMode::FD_0_TYPO = {
 };
 
 const SWSchTypographyFrame WelcomeMode::FD_1_TYPO = {
-    .text = "by your brother",
+    .text = "by jaehoon.",
     .posX = 1, .posY = 2,
     .size = 2,
 };
 
 const SWSchFrame WelcomeMode::FRAMES[] = {
-    // --> typography, 5 seconds. Hello.
-    { 5 * 1000, &WelcomeMode::frameForTypography, &FD_0_TYPO },
-    { 5 * 1000, &WelcomeMode::frameForTypography, &FD_1_TYPO },
+    // --> typography, 6 seconds.
+    { 3 * 1000, &WelcomeMode::frameForTypography, &FD_0_TYPO },
+    { 3 * 1000, &WelcomeMode::frameForTypography, &FD_1_TYPO },
 };
 
 // --> max welcome frames.

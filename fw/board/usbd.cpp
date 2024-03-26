@@ -6,14 +6,14 @@
 #include <tusb.h>
 
 CFG_TUD_EXTERN void tud_mount_cb(void) {
-    tty_print("usb: mount.\n");
-    //tty_printf("usb: cdc: %d.\n", CFG_TUD_CDC);
+    // tty_print("usb: mount.\n");
+    // tty_printf("usb: cdc: %d.\n", CFG_TUD_CDC);
     Usbd::get()->setMounted(true);
 }
 
 CFG_TUD_EXTERN void tud_umount_cb(void) {
     Usbd::get()->setMounted(false);
-    tty_print("usb: unmount.\n");
+    // tty_print("usb: unmount.\n");
 }
 
 CFG_TUD_EXTERN void tud_cdc_rx_cb(uint8_t itf) {
